@@ -18,7 +18,6 @@ const getAiInstance = () => {
 
 // Modelos
 const TEXT_MODEL_NAME = "gemini-3-flash-preview"; 
-// REVERT: Voltando para Flash Image pois o Pro tem limites de cota muito baixos (Erro 429)
 const IMAGE_MODEL_NAME = "gemini-2.5-flash-image";
 
 // Schema for structured output
@@ -42,29 +41,24 @@ const contentSchema: Schema = {
 // Função para remover marcas registradas E termos de realismo que bloqueiam a geração
 const sanitizeImagePrompt = (text: string): string => {
   return text
-    // REMOVER TERMOS DE REALISMO (CRÍTICO PARA EVITAR BLOQUEIOS)
     .replace(/ultra-realista|hiper-realista|realista|realistic|photorealistic|photo-realistic/gi, "stylized 3D render")
     .replace(/fotografia|foto|photo|photography|camera|lens|shot|clique|macro/gi, "illustration")
     .replace(/4k|8k|hd|high definition|detalhado|detailed/gi, "vibrant high quality")
-
-    // Refrigerantes - Termos genéricos
+    // Marcas Genéricas
     .replace(/Coca-Cola|Coca Cola|Coke|Coca/gi, "red soda cup")
     .replace(/Pepsi/gi, "blue soda cup")
     .replace(/Fanta/gi, "orange soda")
     .replace(/Guaraná|Guarana|Antarctica/gi, "golden soda")
     .replace(/Sprite|Soda Limão/gi, "lemon lime soda")
     .replace(/Refrigerante de cola/gi, "dark soda")
-    // Chocolates e Doces
     .replace(/Nutella/gi, "hazelnut cream")
     .replace(/Ovomaltine/gi, "chocolate malt")
     .replace(/KitKat|Kit Kat/gi, "chocolate wafer")
     .replace(/Kinder/gi, "milk chocolate")
     .replace(/M&M|Confeti/gi, "colorful chocolate candies")
     .replace(/Oreo|Negresco/gi, "chocolate sandwich cookie")
-    // Molhos e Outros
     .replace(/Heinz/gi, "ketchup bottle")
     .replace(/Hellmann's|Hellmanns/gi, "mayonnaise")
-    // Fast Food Brands
     .replace(/McDonald's|McDonalds|Mc Donalds/gi, "cheeseburger")
     .replace(/Burger King|BK/gi, "grilled burger")
     .replace(/Starbucks/gi, "coffee cup")
@@ -72,20 +66,16 @@ const sanitizeImagePrompt = (text: string): string => {
     .replace(/Budweiser/gi, "red beer bottle");
 };
 
-// Helper para gerar imagem individual
+// Helper interno para gerar imagem
 const generateImageForContent = async (item: any, profile: BusinessProfile): Promise<string | undefined> => {
   if (!item.suggestion || item.type === 'REPLY') return undefined;
 
   try {
     const ai = getAiInstance();
     
-    // Determinar Aspect Ratio baseado no tipo
     const aspectRatio = item.type === 'STORY' || item.type === 'REELS' ? '9:16' : '1:1';
-
-    // Limpeza agressiva do prompt
     const cleanSuggestion = sanitizeImagePrompt(item.suggestion);
 
-    // Prompt Otimizado para Gemini 2.5 Flash Image (Estilo 3D/Toy para evitar bloqueios de segurança)
     const imagePrompt = `
       Create a cute, high-quality 3D Marketing Illustration (Pixar style) for a food business named "${profile.name}".
       Subject: ${cleanSuggestion}.
@@ -94,22 +84,20 @@ const generateImageForContent = async (item: any, profile: BusinessProfile): Pro
       Restrictions: NO TEXT, NO TRADEMARKS, NO REALISTIC PHOTOS, NO LOGOS.
     `;
 
-    console.log(`[Gerando Ilustração Flash] Prompt: ${cleanSuggestion}`);
+    console.log(`[Gerando Ilustração] Prompt: ${cleanSuggestion}`);
 
     const response = await ai.models.generateContent({
-      model: IMAGE_MODEL_NAME, // Voltando para gemini-2.5-flash-image
+      model: IMAGE_MODEL_NAME,
       contents: {
         parts: [{ text: imagePrompt }],
       },
       config: {
         imageConfig: {
           aspectRatio: aspectRatio,
-          // imageSize removido pois não é suportado no Flash
         }
       },
     });
 
-    // Iterar para encontrar a parte da imagem
     for (const part of response.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData) {
         return `data:image/png;base64,${part.inlineData.data}`;
@@ -118,13 +106,20 @@ const generateImageForContent = async (item: any, profile: BusinessProfile): Pro
     return undefined;
 
   } catch (error: any) {
-    console.warn(`Erro ao gerar imagem para ${item.type}:`, error);
-    if (error.message?.includes('Safety') || error.message?.includes('Blocked')) {
-       console.warn("IMAGEM BLOQUEADA: O modelo detectou conteúdo sensível ou marca registrada.");
-    }
-    // Não relança o erro para não quebrar o fluxo, retorna undefined (sem imagem)
+    console.warn(`Erro ao gerar imagem (não fatal):`, error.message);
+    // Não lançamos erro aqui para não quebrar o fluxo principal
     return undefined;
   }
+};
+
+// NOVA FUNÇÃO EXPORTADA: Permite tentar gerar imagem individualmente pela UI
+export const generateSingleImage = async (suggestion: string, type: string, profile: BusinessProfile): Promise<string> => {
+    const fakeItem = { suggestion, type };
+    const result = await generateImageForContent(fakeItem, profile);
+    if (!result) {
+        throw new Error("Não foi possível gerar a imagem. Verifique sua cota ou tente novamente.");
+    }
+    return result;
 };
 
 export const generateMarketingContent = async (
@@ -208,12 +203,10 @@ export const generateMarketingContent = async (
        };
 
        if (item.suggestion && item.type !== 'REPLY') {
-          // AUMENTO DO DELAY: De 2000ms para 5000ms
-          // Motivo: O Free Tier do Gemini tem limite de ~15 RPM (1 req a cada 4s).
-          // Se gerarmos muito rápido, recebemos erro 429.
-          console.log("Aguardando 5s para respeitar limite de cota da API...");
-          await new Promise(r => setTimeout(r, 5000)); 
+          // Pequeno delay para tentar evitar throttling, mas se falhar, ok.
+          await new Promise(r => setTimeout(r, 2000)); 
           
+          // Tenta gerar, mas se falhar (ex: 429), o generatedImage fica undefined e o item segue com texto
           const imageBase64 = await generateImageForContent(item, profile);
           if (imageBase64) {
             baseItem.generatedImage = imageBase64;
@@ -228,7 +221,7 @@ export const generateMarketingContent = async (
   } catch (error: any) {
     console.error("Gemini Error:", error);
     if (error.status === 429 || error.message?.includes('429')) {
-        throw new Error("Muitas solicitações. O sistema está aguardando recarga de cota. Tente novamente em 1 minuto.");
+        throw new Error("Cota de IA excedida. Tente novamente mais tarde ou faça upgrade.");
     }
     throw error;
   }

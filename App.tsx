@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AppView, BusinessProfile, Product, GeneratedContent, BusinessCategory, ToneOfVoice, PlanTier } from './types';
 import { MOCK_PRODUCTS, PLAN_CONFIG, STRIPE_PUBLIC_KEY } from './constants';
-import { generateMarketingContent } from './services/geminiService';
+import { generateMarketingContent, generateSingleImage } from './services/geminiService';
 import { supabase } from './lib/supabaseClient';
 
 // Icons
@@ -11,7 +11,7 @@ import {
   Trash2, Plus, MessageCircle, Instagram, ExternalLink,
   Smartphone, Zap, ArrowRight, CheckCircle, Lock, AlertTriangle,
   SearchX, Mail, Image as ImageIcon, MapPin, Phone,
-  QrCode, X, Download, Upload, Loader2, ChevronDown, ChevronUp, Star, Clock, DollarSign
+  QrCode, X, Download, Upload, Loader2, ChevronDown, ChevronUp, Star, Clock, DollarSign, RefreshCw
 } from 'lucide-react';
 
 // Declare Stripe on window since we loaded it via script tag
@@ -1308,6 +1308,9 @@ const GeneratorView = ({
   const [generated, setGenerated] = useState<GeneratedContent[]>([]);
   const [selectedType, setSelectedType] = useState<'PACK_SEMANAL' | 'OFERTA_DIA' | 'RESPOSTA'>('PACK_SEMANAL');
   const [customContext, setCustomContext] = useState('');
+  
+  // State para controlar loading de imagens individuais
+  const [generatingImages, setGeneratingImages] = useState<Record<string, boolean>>({});
 
   const handleGenerate = async () => {
     if (products.length === 0) {
@@ -1324,6 +1327,28 @@ const GeneratorView = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGenerateSingleImage = async (itemIndex: number, item: GeneratedContent) => {
+      if (!item.suggestion) return;
+      
+      setGeneratingImages(prev => ({ ...prev, [item.id || itemIndex]: true }));
+      try {
+          const imageBase64 = await generateSingleImage(item.suggestion, item.type, profile);
+          
+          // Update local state
+          const newGenerated = [...generated];
+          newGenerated[itemIndex] = { ...item, generatedImage: imageBase64 };
+          setGenerated(newGenerated);
+          
+          // In a real app we might update Supabase here too
+          onSave(newGenerated[itemIndex]); 
+          
+      } catch (e: any) {
+          alert("Erro ao gerar imagem: " + e.message + "\n\nTente novamente em alguns segundos.");
+      } finally {
+          setGeneratingImages(prev => ({ ...prev, [item.id || itemIndex]: false }));
+      }
   };
 
   return (
@@ -1414,7 +1439,7 @@ const GeneratorView = ({
             </div>
 
             {/* Imagem Gerada pela IA */}
-            {item.generatedImage && (
+            {item.generatedImage ? (
               <div className="mb-6 relative group">
                 <img 
                   src={item.generatedImage} 
@@ -1433,6 +1458,22 @@ const GeneratorView = ({
                    <Sparkles size={10} /> Arte IA
                 </div>
               </div>
+            ) : (
+                /* Botão de Retry para Imagem */
+                item.suggestion && (
+                   <div className="mb-6 bg-gray-50 border border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center text-center">
+                       <ImageIcon size={32} className="text-gray-300 mb-2" />
+                       <p className="text-sm text-gray-500 mb-4 max-w-xs">A imagem não foi gerada automaticamente (limite de cota ou tempo).</p>
+                       <button 
+                         onClick={() => handleGenerateSingleImage(idx, item)}
+                         disabled={generatingImages[item.id || idx]}
+                         className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+                       >
+                         {generatingImages[item.id || idx] ? <Loader2 className="animate-spin" size={16}/> : <RefreshCw size={16}/>}
+                         {generatingImages[item.id || idx] ? 'Gerando...' : 'Tentar Gerar Imagem'}
+                       </button>
+                   </div>
+                )
             )}
 
             {item.hook && (
@@ -1450,7 +1491,7 @@ const GeneratorView = ({
               <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-sm text-yellow-800 mb-4 flex gap-3 items-start">
                 <div className="bg-yellow-100 p-1.5 rounded-full text-yellow-600 shrink-0 mt-0.5"><Sparkles size={14}/></div>
                 <div>
-                  <strong className="block mb-1 text-yellow-900">Sugestão de Imagem (IA não gerou):</strong>
+                  <strong className="block mb-1 text-yellow-900">Sugestão de Prompt:</strong>
                   {item.suggestion}
                 </div>
               </div>
