@@ -18,7 +18,8 @@ const getAiInstance = () => {
 
 // Modelos
 const TEXT_MODEL_NAME = "gemini-3-flash-preview"; 
-const IMAGE_MODEL_NAME = "gemini-2.5-flash-image";
+// UPGRADE: Trocando para o modelo PRO de imagem para evitar bloqueios e melhorar qualidade
+const IMAGE_MODEL_NAME = "gemini-3-pro-image-preview";
 
 // Schema for structured output
 const contentSchema: Schema = {
@@ -32,7 +33,7 @@ const contentSchema: Schema = {
       cta: { type: Type.STRING, description: "Chamada para ação (Ex: Peça no Link da Bio)" },
       hashtags: { type: Type.ARRAY, items: { type: Type.STRING } },
       script: { type: Type.STRING, description: "Roteiro visual apenas para Reels" },
-      suggestion: { type: Type.STRING, description: "Descrição visual para uma ILUSTRAÇÃO 3D LÚDICA (Estilo Cartoon/Pixar). PROIBIDO usar 'realista', 'foto' ou '4k'. Foco em cores vibrantes." },
+      suggestion: { type: Type.STRING, description: "Descrição visual para uma ILUSTRAÇÃO 3D (Estilo Pixar/Disney). Foco em comida apetitosa, cores vibrantes, fundo limpo. PROIBIDO MARCAS." },
     },
     required: ["type", "caption", "cta", "hashtags"],
   }
@@ -44,15 +45,15 @@ const sanitizeImagePrompt = (text: string): string => {
     // REMOVER TERMOS DE REALISMO (CRÍTICO PARA EVITAR BLOQUEIOS)
     .replace(/ultra-realista|hiper-realista|realista|realistic|photorealistic|photo-realistic/gi, "stylized 3D render")
     .replace(/fotografia|foto|photo|photography|camera|lens|shot|clique|macro/gi, "illustration")
-    .replace(/4k|8k|hd|high definition|detalhado|detailed/gi, "vibrant")
+    .replace(/4k|8k|hd|high definition|detalhado|detailed/gi, "vibrant high quality")
 
     // Refrigerantes - Termos genéricos
-    .replace(/Coca-Cola|Coca Cola|Coke|Coca/gi, "generic red soda cup")
-    .replace(/Pepsi/gi, "generic blue soda cup")
+    .replace(/Coca-Cola|Coca Cola|Coke|Coca/gi, "red soda cup")
+    .replace(/Pepsi/gi, "blue soda cup")
     .replace(/Fanta/gi, "orange soda")
-    .replace(/Guaraná|Guarana|Antarctica/gi, "golden soda bottle")
+    .replace(/Guaraná|Guarana|Antarctica/gi, "golden soda")
     .replace(/Sprite|Soda Limão/gi, "lemon lime soda")
-    .replace(/Refrigerante de cola/gi, "dark soda cup")
+    .replace(/Refrigerante de cola/gi, "dark soda")
     // Chocolates e Doces
     .replace(/Nutella/gi, "hazelnut cream")
     .replace(/Ovomaltine/gi, "chocolate malt")
@@ -64,8 +65,8 @@ const sanitizeImagePrompt = (text: string): string => {
     .replace(/Heinz/gi, "ketchup bottle")
     .replace(/Hellmann's|Hellmanns/gi, "mayonnaise")
     // Fast Food Brands
-    .replace(/McDonald's|McDonalds|Mc Donalds/gi, "burger")
-    .replace(/Burger King|BK/gi, "burger")
+    .replace(/McDonald's|McDonalds|Mc Donalds/gi, "cheeseburger")
+    .replace(/Burger King|BK/gi, "grilled burger")
     .replace(/Starbucks/gi, "coffee cup")
     .replace(/Heineken/gi, "green beer bottle")
     .replace(/Budweiser/gi, "red beer bottle");
@@ -81,29 +82,29 @@ const generateImageForContent = async (item: any, profile: BusinessProfile): Pro
     // Determinar Aspect Ratio baseado no tipo
     const aspectRatio = item.type === 'STORY' || item.type === 'REELS' ? '9:16' : '1:1';
 
-    // Limpeza agressiva do prompt (Remove "Realista" e Marcas)
+    // Limpeza agressiva do prompt
     const cleanSuggestion = sanitizeImagePrompt(item.suggestion);
 
-    // MUDANÇA PRINCIPAL: Prompt focado puramente em 3D/Cartoon
+    // Prompt Otimizado para Gemini 3 Pro Image
     const imagePrompt = `
-      Create a high-quality 3D Marketing Illustration (Pixar/Disney style) for a food business named "${profile.name}".
+      Create a cute, high-quality 3D Marketing Illustration (Pixar style) for a food business named "${profile.name}".
       Subject: ${cleanSuggestion}.
-      Style: 3D Render, isometric view, cute, vibrant colors, soft volumetric lighting, clean background.
-      Material: Plastic/Clay texture, smooth finish.
-      Composition: Centered, marketing asset for social media.
-      RESTRICTIONS: NO TEXT. NO REALISTIC PHOTOS. NO TRADEMARKS. NO LOGOS.
+      Style: 3D Render, isometric, vibrant colors, soft studio lighting, clean solid color background.
+      Quality: Masterpiece, trending on artstation.
+      Restrictions: NO TEXT, NO TRADEMARKS, NO REALISTIC PHOTOS.
     `;
 
-    console.log(`[Gerando Ilustração 3D] Prompt: ${cleanSuggestion}`);
+    console.log(`[Gerando Ilustração PRO] Prompt: ${cleanSuggestion}`);
 
     const response = await ai.models.generateContent({
-      model: IMAGE_MODEL_NAME,
+      model: IMAGE_MODEL_NAME, // Usando gemini-3-pro-image-preview
       contents: {
         parts: [{ text: imagePrompt }],
       },
       config: {
         imageConfig: {
           aspectRatio: aspectRatio,
+          imageSize: "1K" // Recurso exclusivo do modelo Pro
         }
       },
     });
@@ -163,7 +164,7 @@ export const generateMarketingContent = async (
     Item 1 (FEED): Legenda Instagram.
     Item 2 (WHATSAPP): Mensagem Lista Transmissão.
     Item 3 (STORY): Base para ARTE visual (ILUSTRAÇÃO 3D). 
-         - 'suggestion': Descrição visual LÚDICA e ESTILIZADA. PROIBIDO "REALISTA". PROIBIDO MARCAS.
+         - 'suggestion': Descrição visual LÚDICA e ESTILIZADA de "${customContext || 'Produto principal'}". Use termos como "cartoon", "3d render". PROIBIDO MARCAS.
          - 'hook': Título (Ex: "SÓ HOJE!").
          - 'caption': Preço/Subtítulo.
     Produto Foco: ${customContext || 'Escolha o melhor produto'}.
@@ -196,7 +197,7 @@ export const generateMarketingContent = async (
     const rawData = JSON.parse(text);
     const resultContents: GeneratedContent[] = [];
     
-    // 2. Processa as imagens SEQUENCIALMENTE com maior delay
+    // 2. Processa as imagens SEQUENCIALMENTE
     for (const item of rawData) {
        const baseItem: GeneratedContent = {
          ...item,
@@ -206,7 +207,7 @@ export const generateMarketingContent = async (
        };
 
        if (item.suggestion && item.type !== 'REPLY') {
-          // Delay de 2s para evitar Rate Limit
+          // Delay de 2s mantido para segurança
           await new Promise(r => setTimeout(r, 2000)); 
           
           const imageBase64 = await generateImageForContent(item, profile);
