@@ -32,36 +32,43 @@ const contentSchema: Schema = {
       cta: { type: Type.STRING, description: "Chamada para ação (Ex: Peça no Link da Bio)" },
       hashtags: { type: Type.ARRAY, items: { type: Type.STRING } },
       script: { type: Type.STRING, description: "Roteiro visual apenas para Reels" },
-      suggestion: { type: Type.STRING, description: "Descrição visual EXTREMAMENTE DETALHADA para criar uma ILUSTRAÇÃO. IMPORTANTE: NÃO USE NOMES DE MARCAS (Ex: use 'refrigerante escuro' em vez de 'Coca-Cola')." },
+      suggestion: { type: Type.STRING, description: "Descrição visual para uma ILUSTRAÇÃO 3D LÚDICA (Estilo Cartoon/Pixar). PROIBIDO usar 'realista', 'foto' ou '4k'. Foco em cores vibrantes." },
     },
     required: ["type", "caption", "cta", "hashtags"],
   }
 };
 
-// Função para remover marcas registradas que bloqueiam a geração de imagens
+// Função para remover marcas registradas E termos de realismo que bloqueiam a geração
 const sanitizeImagePrompt = (text: string): string => {
   return text
-    // Refrigerantes - Termos genéricos de ilustração
-    .replace(/Coca-Cola|Coca Cola|Coke|Coca/gi, "generic red soda cup illustration")
-    .replace(/Pepsi/gi, "generic blue soda cup illustration")
-    .replace(/Fanta/gi, "orange soda illustration")
-    .replace(/Guaraná|Guarana|Antarctica/gi, "golden soda bottle illustration")
-    .replace(/Sprite|Soda Limão/gi, "lemon lime soda illustration")
-    .replace(/Refrigerante de cola/gi, "dark soda cup illustration")
+    // REMOVER TERMOS DE REALISMO (CRÍTICO PARA EVITAR BLOQUEIOS)
+    .replace(/ultra-realista|hiper-realista|realista|realistic|photorealistic|photo-realistic/gi, "stylized 3D render")
+    .replace(/fotografia|foto|photo|photography|camera|lens|shot|clique|macro/gi, "illustration")
+    .replace(/4k|8k|hd|high definition|detalhado|detailed/gi, "vibrant")
+
+    // Refrigerantes - Termos genéricos
+    .replace(/Coca-Cola|Coca Cola|Coke|Coca/gi, "generic red soda cup")
+    .replace(/Pepsi/gi, "generic blue soda cup")
+    .replace(/Fanta/gi, "orange soda")
+    .replace(/Guaraná|Guarana|Antarctica/gi, "golden soda bottle")
+    .replace(/Sprite|Soda Limão/gi, "lemon lime soda")
+    .replace(/Refrigerante de cola/gi, "dark soda cup")
     // Chocolates e Doces
-    .replace(/Nutella/gi, "hazelnut cream jar illustration")
+    .replace(/Nutella/gi, "hazelnut cream")
     .replace(/Ovomaltine/gi, "chocolate malt")
-    .replace(/KitKat|Kit Kat/gi, "chocolate bar illustration")
-    .replace(/Kinder/gi, "milk chocolate illustration")
+    .replace(/KitKat|Kit Kat/gi, "chocolate wafer")
+    .replace(/Kinder/gi, "milk chocolate")
+    .replace(/M&M|Confeti/gi, "colorful chocolate candies")
+    .replace(/Oreo|Negresco/gi, "chocolate sandwich cookie")
     // Molhos e Outros
-    .replace(/Heinz/gi, "red ketchup bottle illustration")
-    .replace(/Hellmann's|Hellmanns/gi, "mayonnaise jar illustration")
-    // Bebidas Alcoólicas
-    .replace(/Heineken/gi, "green beer bottle illustration")
-    .replace(/Budweiser/gi, "red beer bottle illustration")
-    // Geral
-    .replace(/Garrafa de/gi, "Illustration of a bottle of")
-    .replace(/Lata de/gi, "Illustration of a can of");
+    .replace(/Heinz/gi, "ketchup bottle")
+    .replace(/Hellmann's|Hellmanns/gi, "mayonnaise")
+    // Fast Food Brands
+    .replace(/McDonald's|McDonalds|Mc Donalds/gi, "burger")
+    .replace(/Burger King|BK/gi, "burger")
+    .replace(/Starbucks/gi, "coffee cup")
+    .replace(/Heineken/gi, "green beer bottle")
+    .replace(/Budweiser/gi, "red beer bottle");
 };
 
 // Helper para gerar imagem individual
@@ -74,19 +81,20 @@ const generateImageForContent = async (item: any, profile: BusinessProfile): Pro
     // Determinar Aspect Ratio baseado no tipo
     const aspectRatio = item.type === 'STORY' || item.type === 'REELS' ? '9:16' : '1:1';
 
-    // Limpeza agressiva do prompt
+    // Limpeza agressiva do prompt (Remove "Realista" e Marcas)
     const cleanSuggestion = sanitizeImagePrompt(item.suggestion);
 
-    // MUDANÇA PRINCIPAL: Prompt focado em Ilustração Gráfica / 3D Render
+    // MUDANÇA PRINCIPAL: Prompt focado puramente em 3D/Cartoon
     const imagePrompt = `
-      Create a vibrant Marketing Digital Illustration for a food business named "${profile.name}" (${profile.category}).
+      Create a high-quality 3D Marketing Illustration (Pixar/Disney style) for a food business named "${profile.name}".
       Subject: ${cleanSuggestion}.
-      Style: Modern 3D marketing illustration, isometric or pop-art influence, vibrant and appetizing colors, clean smooth vector-like finish, soft studio lighting. 
-      Aesthetic: Food delivery app style, colorful, cheerful, high quality digital art.
-      IMPORTANT: NO PHOTOREALISM. NO TEXT. NO TRADEMARKS/LOGOS.
+      Style: 3D Render, isometric view, cute, vibrant colors, soft volumetric lighting, clean background.
+      Material: Plastic/Clay texture, smooth finish.
+      Composition: Centered, marketing asset for social media.
+      RESTRICTIONS: NO TEXT. NO REALISTIC PHOTOS. NO TRADEMARKS. NO LOGOS.
     `;
 
-    console.log(`[Gerando Ilustração] Prompt: ${cleanSuggestion}`);
+    console.log(`[Gerando Ilustração 3D] Prompt: ${cleanSuggestion}`);
 
     const response = await ai.models.generateContent({
       model: IMAGE_MODEL_NAME,
@@ -154,8 +162,8 @@ export const generateMarketingContent = async (
     TAREFA: Crie um BUNDLE DE OFERTA DO DIA (3 itens).
     Item 1 (FEED): Legenda Instagram.
     Item 2 (WHATSAPP): Mensagem Lista Transmissão.
-    Item 3 (STORY): Base para ARTE visual (ILUSTRAÇÃO). 
-         - 'suggestion': Descrição visual para uma ILUSTRAÇÃO do produto. PROIBIDO USAR NOMES DE MARCAS.
+    Item 3 (STORY): Base para ARTE visual (ILUSTRAÇÃO 3D). 
+         - 'suggestion': Descrição visual LÚDICA e ESTILIZADA. PROIBIDO "REALISTA". PROIBIDO MARCAS.
          - 'hook': Título (Ex: "SÓ HOJE!").
          - 'caption': Preço/Subtítulo.
     Produto Foco: ${customContext || 'Escolha o melhor produto'}.
@@ -198,7 +206,7 @@ export const generateMarketingContent = async (
        };
 
        if (item.suggestion && item.type !== 'REPLY') {
-          // Mantendo o delay de 2 segundos para segurança
+          // Delay de 2s para evitar Rate Limit
           await new Promise(r => setTimeout(r, 2000)); 
           
           const imageBase64 = await generateImageForContent(item, profile);
