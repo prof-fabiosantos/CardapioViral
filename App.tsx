@@ -1171,9 +1171,19 @@ const App = () => {
   // Hash Routing
   useEffect(() => {
     const handleHashChange = async () => {
-      if (window.location.hash.startsWith('#/m/')) {
+      const hash = window.location.hash;
+      
+      // FIX: Ignore Supabase Auth redirects (Magic Links)
+      // These contain access_token, type=recovery, etc.
+      // We let the onAuthStateChange listener (in checkAuth) handle the session/profile load.
+      if (hash.includes('access_token=') || hash.includes('type=recovery') || hash.includes('error=')) {
+         setLoading(true);
+         return; 
+      }
+
+      if (hash.startsWith('#/m/')) {
         setLoading(true);
-        const slug = window.location.hash.replace('#/m/', '').split('?')[0];
+        const slug = hash.replace('#/m/', '').split('?')[0];
         const { data: publicProfile } = await supabase.from('profiles').select('*').eq('slug', slug).single();
 
         if (publicProfile) {
@@ -1186,13 +1196,11 @@ const App = () => {
            setView(AppView.MENU_PREVIEW);
         }
         setLoading(false);
-      } else if (window.location.hash === '#/discovery') {
+      } else if (hash === '#/discovery') {
          setView(AppView.DISCOVERY);
          setLoading(false);
-      } else if (!session && window.location.hash === '') {
-         // Se não estiver logado e sem hash, mostra o Hub
-         setView(AppView.MAIN_HUB);
-         setLoading(false);
+      } else if (hash === '') {
+         // Defer to checkAuth for root path to handle session check
       }
     };
 
@@ -1203,25 +1211,37 @@ const App = () => {
     }
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [session]);
+  }, []); // Empty dependency array to prevent loops
 
   const checkAuth = async () => {
     setLoading(true);
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-         fetchUserData(session.user.id);
-      } else {
-         if (!window.location.hash) setView(AppView.MAIN_HUB);
-         setLoading(false);
-      }
-    });
+    
+    // Check current session
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    setSession(currentSession);
+    
+    if (currentSession) {
+       await fetchUserData(currentSession.user.id);
+    } else {
+       // Only force MAIN_HUB if we are NOT processing a Magic Link (which has a hash)
+       const hash = window.location.hash;
+       if (!hash.includes('access_token=')) {
+          if (!hash) setView(AppView.MAIN_HUB);
+          setLoading(false);
+       }
+    }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Subscribe to changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
+      
       if (session) {
-        if (!profile) fetchUserData(session.user.id);
+        // If we just signed in (Magic Link success), fetch data
+        if (!profile || profile.user_id !== session.user.id) {
+           await fetchUserData(session.user.id);
+        }
       } else {
+        // Logged out
         if (!window.location.hash.startsWith('#/m/') && window.location.hash !== '#/discovery') {
            setProfile(null);
            setProducts([]);
@@ -1254,7 +1274,10 @@ const App = () => {
            setAnalyticsStats(stats);
         }
 
-        if (view === AppView.LANDING || view === AppView.AUTH || view === AppView.MAIN_HUB) setView(AppView.DASHBOARD);
+        // Only redirect to dashboard if we are in a neutral state
+        if (view === AppView.LANDING || view === AppView.AUTH || view === AppView.MAIN_HUB || view === AppView.ONBOARDING) {
+            setView(AppView.DASHBOARD);
+        }
       } else {
         setView(AppView.ONBOARDING);
       }
