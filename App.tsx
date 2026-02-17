@@ -282,14 +282,70 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, items: Pr
   const [profile, setProfile] = useState<Partial<BusinessProfile>>({
     themeColor: '#ea580c'
   });
+  
+  // File states
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+
+  // Clean up object URLs
+  useEffect(() => {
+    return () => {
+      if (logoPreview) URL.revokeObjectURL(logoPreview);
+      if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+    };
+  }, [logoPreview, bannerPreview]);
 
   const handleNext = () => setStep(s => s + 1);
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+      // Clear URL input if file is selected to avoid confusion
+      setProfile(prev => ({ ...prev, logo_url: '' })); 
+    }
+  };
+
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setBannerFile(file);
+      setBannerPreview(URL.createObjectURL(file));
+      setProfile(prev => ({ ...prev, banner_url: '' })); 
+    }
+  };
 
   const handleSubmit = async () => {
     setLoading(true);
     try {
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error("Usuário não autenticado");
+
+      // --- IMAGE UPLOAD LOGIC ---
+      let finalLogoUrl = profile.logo_url || '';
+      let finalBannerUrl = profile.banner_url || '';
+
+      if (logoFile) {
+         const fileExt = logoFile.name.split('.').pop();
+         const fileName = `${user.id}/logo-${Date.now()}.${fileExt}`;
+         const { error: logoErr } = await supabase.storage.from('product-images').upload(fileName, logoFile);
+         if (logoErr) throw logoErr;
+         const { data: logoData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+         finalLogoUrl = logoData.publicUrl;
+      }
+
+      if (bannerFile) {
+         const fileExt = bannerFile.name.split('.').pop();
+         const fileName = `${user.id}/banner-${Date.now()}.${fileExt}`;
+         const { error: bannerErr } = await supabase.storage.from('product-images').upload(fileName, bannerFile);
+         if (bannerErr) throw bannerErr;
+         const { data: bannerData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+         finalBannerUrl = bannerData.publicUrl;
+      }
+      // --------------------------
 
       // Generate Slug
       const slug = profile.name?.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-') + '-' + Math.random().toString(36).substr(2, 4);
@@ -304,8 +360,8 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, items: Pr
         tone: profile.tone!,
         instagram: profile.instagram || '',
         themeColor: profile.themeColor || '#ea580c',
-        logo_url: profile.logo_url || '',
-        banner_url: profile.banner_url || '',
+        logo_url: finalLogoUrl,
+        banner_url: finalBannerUrl,
         subscription: {
           tier: PlanTier.FREE,
           status: 'trial',
@@ -408,30 +464,91 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, items: Pr
         )}
 
         {step === 2 && (
-          <div className="space-y-4">
-             <div className="bg-orange-50 p-4 rounded-lg text-sm text-orange-800 mb-4">
-               Cole links de imagens (ex: Instagram, Imgur ou Google Drive público). Se deixar vazio, usaremos um padrão.
+          <div className="space-y-6">
+             <div className="bg-orange-50 p-4 rounded-lg text-sm text-orange-800 mb-2">
+               Cole links de imagens ou faça upload do seu computador.
              </div>
+             
+             {/* LOGO INPUT */}
              <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">URL do Logo (Opcional)</label>
-              <input 
-                type="text" 
-                className="w-full border border-gray-300 rounded-lg p-3 outline-none"
-                placeholder="https://..."
-                value={profile.logo_url || ''}
-                onChange={e => setProfile({...profile, logo_url: e.target.value})}
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-2">Logo (Opcional)</label>
+              <div className="flex flex-col gap-3">
+                 <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      className="w-full border border-gray-300 rounded-lg p-3 outline-none text-sm"
+                      placeholder="https://..."
+                      value={profile.logo_url || ''}
+                      onChange={e => {
+                         setProfile({...profile, logo_url: e.target.value});
+                         setLogoFile(null); // Clear file if typing URL
+                         setLogoPreview(null);
+                      }}
+                      disabled={!!logoFile}
+                    />
+                    <div className="relative flex-shrink-0">
+                       <input type="file" id="logo-upload" accept="image/*" className="hidden" onChange={handleLogoChange} />
+                       <label 
+                         htmlFor="logo-upload" 
+                         className={`cursor-pointer h-full px-4 rounded border flex items-center gap-2 transition-colors font-medium text-sm whitespace-nowrap ${logoFile ? 'bg-green-100 border-green-300 text-green-700' : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'}`}
+                       >
+                         <Upload size={16} /> {logoFile ? 'Alterar' : 'Upload'}
+                       </label>
+                    </div>
+                 </div>
+                 {logoPreview && (
+                    <div className="flex items-center gap-3 bg-gray-50 p-2 rounded border border-gray-200 w-fit pr-4">
+                       <img src={logoPreview} alt="Logo Preview" className="w-12 h-12 rounded-full object-cover border border-gray-300" />
+                       <div className="flex flex-col">
+                          <span className="text-xs font-bold text-gray-700">Logo Selecionado</span>
+                          <span className="text-[10px] text-gray-500 truncate max-w-[150px]">{logoFile?.name}</span>
+                       </div>
+                       <button onClick={() => { setLogoFile(null); setLogoPreview(null); }} className="text-red-500 hover:bg-red-50 p-1 rounded"><X size={14}/></button>
+                    </div>
+                 )}
+              </div>
             </div>
+
+            {/* BANNER INPUT */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">URL da Capa/Banner (Opcional)</label>
-              <input 
-                type="text" 
-                className="w-full border border-gray-300 rounded-lg p-3 outline-none"
-                placeholder="https://..."
-                value={profile.banner_url || ''}
-                onChange={e => setProfile({...profile, banner_url: e.target.value})}
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-2">Capa/Banner (Opcional)</label>
+               <div className="flex flex-col gap-3">
+                 <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      className="w-full border border-gray-300 rounded-lg p-3 outline-none text-sm"
+                      placeholder="https://..."
+                      value={profile.banner_url || ''}
+                      onChange={e => {
+                         setProfile({...profile, banner_url: e.target.value});
+                         setBannerFile(null);
+                         setBannerPreview(null);
+                      }}
+                      disabled={!!bannerFile}
+                    />
+                    <div className="relative flex-shrink-0">
+                       <input type="file" id="banner-upload" accept="image/*" className="hidden" onChange={handleBannerChange} />
+                       <label 
+                         htmlFor="banner-upload" 
+                         className={`cursor-pointer h-full px-4 rounded border flex items-center gap-2 transition-colors font-medium text-sm whitespace-nowrap ${bannerFile ? 'bg-green-100 border-green-300 text-green-700' : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'}`}
+                       >
+                         <Upload size={16} /> {bannerFile ? 'Alterar' : 'Upload'}
+                       </label>
+                    </div>
+                 </div>
+                 {bannerPreview && (
+                    <div className="flex items-center gap-3 bg-gray-50 p-2 rounded border border-gray-200 w-fit pr-4">
+                       <img src={bannerPreview} alt="Banner Preview" className="w-20 h-10 object-cover rounded border border-gray-300" />
+                       <div className="flex flex-col">
+                          <span className="text-xs font-bold text-gray-700">Capa Selecionada</span>
+                          <span className="text-[10px] text-gray-500 truncate max-w-[150px]">{bannerFile?.name}</span>
+                       </div>
+                       <button onClick={() => { setBannerFile(null); setBannerPreview(null); }} className="text-red-500 hover:bg-red-50 p-1 rounded"><X size={14}/></button>
+                    </div>
+                 )}
+              </div>
             </div>
+
             <button 
               onClick={handleNext}
               className="w-full bg-orange-600 text-white font-bold py-3 rounded-lg mt-4"
