@@ -634,15 +634,24 @@ const ProductsManager = ({ products, onAdd, onDelete, profile, onUpgrade }: {
   const [isAdding, setIsAdding] = useState(false);
   const [newProduct, setNewProduct] = useState<Partial<Product>>({ category: 'Geral' });
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const tier = profile.subscription?.tier || PlanTier.FREE;
   const limits = PLAN_CONFIG[tier].limits;
   const isLimitReached = products.length >= limits.products;
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setImageFile(e.target.files[0]);
+      const file = e.target.files[0];
+      setImageFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
     }
   };
 
@@ -702,6 +711,7 @@ const ProductsManager = ({ products, onAdd, onDelete, profile, onUpgrade }: {
         setIsAdding(false);
         setNewProduct({ category: 'Geral' });
         setImageFile(null);
+        setPreviewUrl(null);
       }
     } catch (err: any) {
        alert(err.message);
@@ -788,18 +798,33 @@ const ProductsManager = ({ products, onAdd, onDelete, profile, onUpgrade }: {
                       </label>
                   </div>
                </div>
+               
+               {/* PREVIEW DA IMAGEM */}
                {imageFile && (
-                  <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded w-fit">
-                    <CheckCircle size={12} />
-                    Arquivo: <strong>{imageFile.name}</strong>
-                    <button onClick={() => setImageFile(null)} className="ml-2 text-red-500 hover:underline">Remover</button>
+                  <div className="flex items-center gap-4 bg-green-50 p-3 rounded-lg border border-green-100 mt-2">
+                     {previewUrl && (
+                        <img 
+                          src={previewUrl} 
+                          alt="Preview" 
+                          className="w-16 h-16 object-cover rounded-md border border-green-200 shadow-sm" 
+                        />
+                     )}
+                     <div className="flex flex-col">
+                        <span className="text-xs font-bold text-green-800 flex items-center gap-1">
+                           <CheckCircle size={12} /> Arquivo Selecionado
+                        </span>
+                        <span className="text-xs text-green-700 truncate max-w-[200px]">{imageFile.name}</span>
+                        <button onClick={() => { setImageFile(null); setPreviewUrl(null); }} className="text-xs text-red-500 hover:text-red-700 hover:underline mt-1 text-left">
+                           Remover imagem
+                        </button>
+                     </div>
                   </div>
                )}
             </div>
           </div>
 
           <div className="flex justify-end gap-2 border-t pt-4">
-            <button onClick={() => { setIsAdding(false); setImageFile(null); }} className="text-gray-500 px-4 py-2 hover:bg-gray-50 rounded">Cancelar</button>
+            <button onClick={() => { setIsAdding(false); setImageFile(null); setPreviewUrl(null); }} className="text-gray-500 px-4 py-2 hover:bg-gray-50 rounded">Cancelar</button>
             <button 
                onClick={handleSave} 
                disabled={saving}
