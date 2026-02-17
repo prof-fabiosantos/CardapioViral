@@ -564,7 +564,8 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, products:
      neighborhood: '',
      category: BusinessCategory.OUTRO,
      tone: ToneOfVoice.CASUAL,
-     phone: ''
+     phone: '',
+     logo_url: '' // Added missing field init
    });
    const [loading, setLoading] = useState(false);
 
@@ -586,6 +587,7 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, products:
          slug,
          instagram: '',
          themeColor: '#ea580c',
+         logo_url: formData.logo_url || '',
          subscription: { tier: PlanTier.FREE, status: 'active', periodEnd: Date.now() + 30*24*60*60*1000 }
       };
 
@@ -639,6 +641,10 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, products:
                 <div>
                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Estabelecimento</label>
                    <input className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-orange-500" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Ex: Pizzaria do João" />
+                </div>
+                <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">URL do Logo (Opcional)</label>
+                   <input className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-orange-500" value={formData.logo_url} onChange={e => setFormData({...formData, logo_url: e.target.value})} placeholder="https://..." />
                 </div>
                 <div>
                    <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>

@@ -127,13 +127,16 @@ export const dbService = {
       // 1. ESTRATÉGIA CRÍTICA: Se houver filtro de Localização, buscamos PERFIS PRIMEIRO.
       // Isso corrige o bug onde a busca de produtos genérica ignora resultados locais se eles não estiverem nos top 50 globais.
       if (filters.location && filters.location.trim() !== '') {
+         // Limpa o termo: se o usuário digitar "Manaus, Japiim", pegamos "Manaus" para garantir match na cidade
+         // Isso resolve o problema de busca muito específica falhando
+         const rawTerm = filters.location.trim();
+         const splitTerm = rawTerm.split(',')[0].trim(); // Pega apenas a primeira parte (Ex: "Manaus" de "Manaus, Japiim")
+         const term = splitTerm.length > 2 ? splitTerm : rawTerm; // Se ficou muito curto, usa o original
+         
          // Tenta buscar em cidade OU bairro
          // Nota: Isso assume que a tabela profiles tem a coluna neighborhood.
          // Se der erro (coluna não existe), tentamos apenas city no catch/fallback
          
-         const term = filters.location.trim();
-         
-         // Usamos ilike em city OR neighborhood
          const { data: profiles, error } = await supabase
             .from('profiles')
             .select('user_id')
