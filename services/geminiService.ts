@@ -32,7 +32,7 @@ const contentSchema: Schema = {
       cta: { type: Type.STRING, description: "Chamada para ação (Ex: Peça no Link da Bio)" },
       hashtags: { type: Type.ARRAY, items: { type: Type.STRING } },
       script: { type: Type.STRING, description: "Roteiro visual apenas para Reels" },
-      suggestion: { type: Type.STRING, description: "Descrição visual EXTREMAMENTE DETALHADA para criar uma imagem. IMPORTANTE: NÃO USE NOMES DE MARCAS (Ex: use 'refrigerante escuro' em vez de 'Coca-Cola', 'creme de avelã' em vez de 'Nutella')." },
+      suggestion: { type: Type.STRING, description: "Descrição visual EXTREMAMENTE DETALHADA para criar uma ILUSTRAÇÃO. IMPORTANTE: NÃO USE NOMES DE MARCAS (Ex: use 'refrigerante escuro' em vez de 'Coca-Cola')." },
     },
     required: ["type", "caption", "cta", "hashtags"],
   }
@@ -41,31 +41,27 @@ const contentSchema: Schema = {
 // Função para remover marcas registradas que bloqueiam a geração de imagens
 const sanitizeImagePrompt = (text: string): string => {
   return text
-    // Refrigerantes
-    .replace(/Coca-Cola|Coca Cola|Coke|Coca/gi, "ice cold dark soda glass")
-    .replace(/Pepsi/gi, "dark soda")
-    .replace(/Fanta/gi, "orange soda")
-    .replace(/Guaraná|Guarana|Antarctica/gi, "golden brazilian soda")
-    .replace(/Sprite|Soda Limão/gi, "lemon lime soda")
-    .replace(/Refrigerante de cola/gi, "dark soda in a glass")
+    // Refrigerantes - Termos genéricos de ilustração
+    .replace(/Coca-Cola|Coca Cola|Coke|Coca/gi, "generic red soda cup illustration")
+    .replace(/Pepsi/gi, "generic blue soda cup illustration")
+    .replace(/Fanta/gi, "orange soda illustration")
+    .replace(/Guaraná|Guarana|Antarctica/gi, "golden soda bottle illustration")
+    .replace(/Sprite|Soda Limão/gi, "lemon lime soda illustration")
+    .replace(/Refrigerante de cola/gi, "dark soda cup illustration")
     // Chocolates e Doces
-    .replace(/Nutella/gi, "chocolate hazelnut cream spread")
-    .replace(/Ovomaltine/gi, "crunchy chocolate malt")
-    .replace(/KitKat|Kit Kat/gi, "chocolate wafer bar")
-    .replace(/Kinder/gi, "milk chocolate")
-    .replace(/M&M|Confeti/gi, "colorful chocolate candies")
-    .replace(/Oreo|Negresco/gi, "dark chocolate sandwich cookie")
+    .replace(/Nutella/gi, "hazelnut cream jar illustration")
+    .replace(/Ovomaltine/gi, "chocolate malt")
+    .replace(/KitKat|Kit Kat/gi, "chocolate bar illustration")
+    .replace(/Kinder/gi, "milk chocolate illustration")
     // Molhos e Outros
-    .replace(/Hellmann's|Hellmanns/gi, "creamy mayonnaise")
-    .replace(/Heinz/gi, "ketchup")
-    .replace(/Catupiry/gi, "creamy cheese")
-    .replace(/Cheddar McMelt/gi, "melted cheddar cheese")
-    // Fast Food Brands
-    .replace(/McDonald's|McDonalds|Mc Donalds/gi, "American style burger")
-    .replace(/Burger King|BK/gi, "flame grilled burger")
-    .replace(/Starbucks/gi, "coffee cup")
-    .replace(/Heineken/gi, "green beer bottle with condensation")
-    .replace(/Budweiser/gi, "red beer bottle");
+    .replace(/Heinz/gi, "red ketchup bottle illustration")
+    .replace(/Hellmann's|Hellmanns/gi, "mayonnaise jar illustration")
+    // Bebidas Alcoólicas
+    .replace(/Heineken/gi, "green beer bottle illustration")
+    .replace(/Budweiser/gi, "red beer bottle illustration")
+    // Geral
+    .replace(/Garrafa de/gi, "Illustration of a bottle of")
+    .replace(/Lata de/gi, "Illustration of a can of");
 };
 
 // Helper para gerar imagem individual
@@ -81,14 +77,16 @@ const generateImageForContent = async (item: any, profile: BusinessProfile): Pro
     // Limpeza agressiva do prompt
     const cleanSuggestion = sanitizeImagePrompt(item.suggestion);
 
+    // MUDANÇA PRINCIPAL: Prompt focado em Ilustração Gráfica / 3D Render
     const imagePrompt = `
-      Professional food photography advertisement for a ${profile.category} named "${profile.name}".
+      Create a vibrant Marketing Digital Illustration for a food business named "${profile.name}" (${profile.category}).
       Subject: ${cleanSuggestion}.
-      Style: Award-winning food photography, 8k resolution, highly detailed, appetizing, cinematic lighting, macro shot.
-      IMPORTANT: GENERIC UNBRANDED PACKAGING. NO LOGOS. NO TEXT. NO TRADEMARKS.
+      Style: Modern 3D marketing illustration, isometric or pop-art influence, vibrant and appetizing colors, clean smooth vector-like finish, soft studio lighting. 
+      Aesthetic: Food delivery app style, colorful, cheerful, high quality digital art.
+      IMPORTANT: NO PHOTOREALISM. NO TEXT. NO TRADEMARKS/LOGOS.
     `;
 
-    console.log(`[Gerando Imagem] Prompt Sanitizado: ${cleanSuggestion}`);
+    console.log(`[Gerando Ilustração] Prompt: ${cleanSuggestion}`);
 
     const response = await ai.models.generateContent({
       model: IMAGE_MODEL_NAME,
@@ -156,8 +154,8 @@ export const generateMarketingContent = async (
     TAREFA: Crie um BUNDLE DE OFERTA DO DIA (3 itens).
     Item 1 (FEED): Legenda Instagram.
     Item 2 (WHATSAPP): Mensagem Lista Transmissão.
-    Item 3 (STORY): Base para ARTE visual. 
-         - 'suggestion': Descrição visual da comida. PROIBIDO USAR NOMES DE MARCAS (Ex: use 'refrigerante preto' e não Coca-Cola).
+    Item 3 (STORY): Base para ARTE visual (ILUSTRAÇÃO). 
+         - 'suggestion': Descrição visual para uma ILUSTRAÇÃO do produto. PROIBIDO USAR NOMES DE MARCAS.
          - 'hook': Título (Ex: "SÓ HOJE!").
          - 'caption': Preço/Subtítulo.
     Produto Foco: ${customContext || 'Escolha o melhor produto'}.
@@ -200,7 +198,7 @@ export const generateMarketingContent = async (
        };
 
        if (item.suggestion && item.type !== 'REPLY') {
-          // Aumentado delay para 2 segundos para evitar rate limit e dar fôlego ao modelo
+          // Mantendo o delay de 2 segundos para segurança
           await new Promise(r => setTimeout(r, 2000)); 
           
           const imageBase64 = await generateImageForContent(item, profile);
