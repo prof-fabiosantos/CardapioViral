@@ -11,7 +11,7 @@ import {
   Trash2, Plus, MessageCircle, Instagram, ExternalLink,
   Smartphone, Zap, ArrowRight, CheckCircle, Lock, AlertTriangle,
   SearchX, Mail, Image as ImageIcon, MapPin, Phone,
-  QrCode, X, Download, Upload, Loader2
+  QrCode, X, Download, Upload, Loader2, ChevronDown, ChevronUp, Star, Clock, DollarSign
 } from 'lucide-react';
 
 // Declare Stripe on window since we loaded it via script tag
@@ -159,47 +159,325 @@ const Layout = ({
 
 // 2. Views
 
-const Landing = ({ onStart, onLogin }: { onStart: () => void, onLogin: () => void }) => (
-  <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white flex flex-col items-center justify-center p-4 text-center">
-    <div className="absolute top-4 right-4">
-      <button onClick={onLogin} className="text-sm font-semibold text-gray-600 hover:text-orange-600 px-4 py-2">
-        Já tenho conta
-      </button>
+const Landing = ({ onStart, onLogin }: { onStart: () => void, onLogin: () => void }) => {
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const toggleFaq = (index: number) => {
+    setOpenFaq(openFaq === index ? null : index);
+  };
+
+  const faqs = [
+    {
+      q: "Preciso ter computador para usar?",
+      a: "Não! O Cardápio Viral foi feito pensando em quem usa celular. Você consegue criar seu cardápio, gerar posts e gerenciar pedidos tudo pelo smartphone."
+    },
+    {
+      q: "Serve para qual tipo de negócio?",
+      a: "Perfeito para delivery, pizzarias, hamburguerias, confeitarias, lanchonetes e bares que querem vender pelo WhatsApp e Instagram sem pagar comissões abusivas."
+    },
+    {
+      q: "O cliente precisa baixar aplicativo?",
+      a: "Não. Seu cliente acessa um link (ex: viralmenu.com/sua-loja), escolhe o pedido e envia direto para o seu WhatsApp já pronto. Sem login, sem download, sem barreira."
+    },
+    {
+      q: "Como funciona a IA de conteúdo?",
+      a: "Nossa IA 'lê' o seu cardápio e cria legendas, roteiros de reels e textos de venda persuasivos focados nos seus produtos. É como ter uma agência de marketing no bolso."
+    },
+    {
+      q: "Posso cancelar quando quiser?",
+      a: "Sim. Sem fidelidade, sem multas. Você usa o mês que pagou e pode cancelar a renovação a qualquer momento."
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-white text-gray-900 font-sans">
+      {/* Navbar */}
+      <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-md z-50 border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-2 text-orange-600 font-bold text-xl">
+            <ChefHat size={32} />
+            <span>Cardápio Viral</span>
+          </div>
+          <div className="flex gap-4">
+            <button onClick={onLogin} className="text-gray-600 font-medium hover:text-orange-600 px-4 py-2 hidden md:block">
+              Já tenho conta
+            </button>
+            <button onClick={onStart} className="bg-orange-600 text-white px-5 py-2 rounded-full font-bold hover:bg-orange-700 transition-transform hover:scale-105 shadow-lg shadow-orange-200">
+              Começar Grátis
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="pt-32 pb-20 md:pt-48 md:pb-32 px-4 bg-gradient-to-b from-orange-50 to-white overflow-hidden relative">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12">
+          <div className="flex-1 text-center md:text-left z-10">
+            <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-bold mb-6 animate-fade-in-up">
+              <Sparkles size={14} /> Inteligência Artificial para Gastronomia
+            </div>
+            <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 mb-6 leading-tight tracking-tight animate-fade-in-up" style={{animationDelay: '0.1s'}}>
+              Transforme Seguidores em <span className="text-orange-600">Clientes Famintos</span>
+            </h1>
+            <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed max-w-lg mx-auto md:mx-0 animate-fade-in-up" style={{animationDelay: '0.2s'}}>
+              Crie um cardápio digital irresistível e deixe nossa IA gerar posts, stories e ofertas que vendem por você. Tudo em 5 minutos.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start animate-fade-in-up" style={{animationDelay: '0.3s'}}>
+              <button 
+                onClick={onStart}
+                className="bg-orange-600 text-white text-lg font-bold px-8 py-4 rounded-xl shadow-xl hover:bg-orange-700 hover:shadow-2xl transition-all transform hover:-translate-y-1"
+              >
+                Criar Minha Loja Grátis
+              </button>
+              <button onClick={() => document.getElementById('plans')?.scrollIntoView({behavior: 'smooth'})} className="bg-white text-gray-700 border border-gray-200 text-lg font-bold px-8 py-4 rounded-xl hover:bg-gray-50 transition-colors">
+                Ver Planos
+              </button>
+            </div>
+            <p className="mt-4 text-sm text-gray-500 flex items-center justify-center md:justify-start gap-2">
+              <CheckCircle size={14} className="text-green-500" /> Teste grátis sem cartão de crédito
+            </p>
+          </div>
+          
+          {/* Image Collage */}
+          <div className="flex-1 relative z-0">
+            <div className="relative w-full max-w-lg mx-auto">
+               <div className="absolute top-0 -left-4 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+               <div className="absolute top-0 -right-4 w-72 h-72 bg-orange-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+               <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+               
+               <div className="grid grid-cols-2 gap-4 relative">
+                  <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=500&q=80" alt="Hambúrguer Suculento" className="rounded-2xl shadow-lg transform translate-y-8 hover:scale-105 transition-transform duration-500" />
+                  <img src="https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=500&q=80" alt="Pizza" className="rounded-2xl shadow-lg hover:scale-105 transition-transform duration-500" />
+                  <img src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=500&q=80" alt="Bebidas e Galera" className="rounded-2xl shadow-lg transform -translate-y-8 hover:scale-105 transition-transform duration-500" />
+                  <div className="bg-white p-4 rounded-2xl shadow-lg flex flex-col justify-center items-center text-center transform hover:scale-105 transition-transform duration-500">
+                     <Sparkles className="text-orange-500 mb-2" size={32} />
+                     <span className="font-bold text-gray-900">IA Geradora</span>
+                     <span className="text-xs text-gray-500">Legendas e Artes em 1 clique</span>
+                  </div>
+               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Vantagens Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Vantagens de ser uma Loja Parceira</h2>
+            <p className="text-gray-500 max-w-2xl mx-auto text-lg">Pare de perder tempo com design e tecnologia. Foque no que importa: a comida.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="p-8 rounded-2xl bg-orange-50 border border-orange-100 hover:shadow-lg transition-shadow">
+              <div className="bg-orange-100 w-14 h-14 rounded-xl flex items-center justify-center text-orange-600 mb-6">
+                <Clock size={28} />
+              </div>
+              <h3 className="text-xl font-bold mb-3">Economize 10h por semana</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Nossa IA cria o conteúdo da semana inteira em minutos. Adeus bloqueio criativo e horas no Canva.
+              </p>
+            </div>
+            <div className="p-8 rounded-2xl bg-blue-50 border border-blue-100 hover:shadow-lg transition-shadow">
+              <div className="bg-blue-100 w-14 h-14 rounded-xl flex items-center justify-center text-blue-600 mb-6">
+                <Smartphone size={28} />
+              </div>
+              <h3 className="text-xl font-bold mb-3">Cardápio no Zap</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Seu cliente pede pelo link e você recebe pronto no WhatsApp. Sem taxas por pedido, sem intermediários.
+              </p>
+            </div>
+            <div className="p-8 rounded-2xl bg-green-50 border border-green-100 hover:shadow-lg transition-shadow">
+              <div className="bg-green-100 w-14 h-14 rounded-xl flex items-center justify-center text-green-600 mb-6">
+                <DollarSign size={28} />
+              </div>
+              <h3 className="text-xl font-bold mb-3">Venda Mais</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Use a função "Oferta Relâmpago" para girar estoque parado e aumentar o faturamento em dias fracos.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Como abrir uma loja */}
+      <section className="py-20 bg-gray-900 text-white relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+           <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1500&q=80" className="w-full h-full object-cover" />
+        </div>
+        <div className="max-w-6xl mx-auto px-4 relative z-10">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">Como abrir sua loja no Cardápio Viral?</h2>
+          
+          <div className="grid md:grid-cols-3 gap-8 relative">
+             {/* Connector Line (Desktop) */}
+             <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-1 bg-gray-700 z-0"></div>
+
+             <div className="relative z-10 flex flex-col items-center text-center">
+                <div className="w-24 h-24 bg-orange-600 rounded-full flex items-center justify-center text-3xl font-bold border-8 border-gray-900 mb-6 shadow-glow">
+                  1
+                </div>
+                <h3 className="text-xl font-bold mb-2">Cadastro Rápido</h3>
+                <p className="text-gray-400">Preencha nome e telefone. Em 30 segundos sua conta está criada.</p>
+             </div>
+
+             <div className="relative z-10 flex flex-col items-center text-center">
+                <div className="w-24 h-24 bg-orange-600 rounded-full flex items-center justify-center text-3xl font-bold border-8 border-gray-900 mb-6 shadow-glow">
+                  2
+                </div>
+                <h3 className="text-xl font-bold mb-2">Adicione Produtos</h3>
+                <p className="text-gray-400">Cadastre seus lanches, pizzas ou bebidas com foto e preço.</p>
+             </div>
+
+             <div className="relative z-10 flex flex-col items-center text-center">
+                <div className="w-24 h-24 bg-orange-600 rounded-full flex items-center justify-center text-3xl font-bold border-8 border-gray-900 mb-6 shadow-glow">
+                  3
+                </div>
+                <h3 className="text-xl font-bold mb-2">Use a Magia</h3>
+                <p className="text-gray-400">Clique na IA para gerar posts e divulgue seu link para começar a vender.</p>
+             </div>
+          </div>
+
+          <div className="text-center mt-12">
+            <button onClick={onStart} className="bg-white text-gray-900 font-bold px-8 py-4 rounded-xl text-lg hover:bg-gray-100 transition-colors">
+              Começar Agora
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Planos Section */}
+      <section id="plans" className="py-20 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Conheça nossos Planos</h2>
+            <p className="text-gray-500 text-lg">Custa menos que uma pizza por mês.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* Free */}
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
+               <h3 className="font-bold text-xl text-gray-900">Trial Grátis</h3>
+               <div className="my-4">
+                 <span className="text-4xl font-extrabold">R$ 0</span>
+                 <span className="text-gray-500">/7 dias</span>
+               </div>
+               <p className="text-gray-500 text-sm mb-6">Para testar a ferramenta e ver se funciona para você.</p>
+               <button onClick={onStart} className="w-full py-3 border-2 border-gray-900 text-gray-900 font-bold rounded-lg hover:bg-gray-50 mb-6">
+                 Começar Grátis
+               </button>
+               <ul className="space-y-3 text-sm text-gray-600">
+                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> 5 Produtos</li>
+                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> 5 Gerações de IA</li>
+                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> Cardápio Digital</li>
+               </ul>
+            </div>
+
+            {/* Pro (Highlighted) */}
+            <div className="bg-white p-8 rounded-2xl shadow-xl border-2 border-orange-500 relative transform md:-translate-y-4">
+               <div className="absolute top-0 right-0 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">MAIS VENDIDO</div>
+               <h3 className="font-bold text-xl text-orange-600">Plano Pro</h3>
+               <div className="my-4">
+                 <span className="text-4xl font-extrabold">R$ 59</span>
+                 <span className="text-gray-500">/mês</span>
+               </div>
+               <p className="text-gray-500 text-sm mb-6">Para quem quer crescer de verdade e profissionalizar o delivery.</p>
+               <button onClick={onStart} className="w-full py-3 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 mb-6 shadow-lg shadow-orange-200">
+                 Quero Vender Mais
+               </button>
+               <ul className="space-y-3 text-sm text-gray-600">
+                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> <strong>Produtos Ilimitados</strong></li>
+                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> <strong>IA Ilimitada</strong> (Posts, Stories, Reels)</li>
+                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> Cardápio Digital</li>
+                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> Suporte VIP</li>
+               </ul>
+            </div>
+
+            {/* Agency */}
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
+               <h3 className="font-bold text-xl text-gray-900">Agência</h3>
+               <div className="my-4">
+                 <span className="text-4xl font-extrabold">R$ 99</span>
+                 <span className="text-gray-500">/mês</span>
+               </div>
+               <p className="text-gray-500 text-sm mb-6">Para social media managers que cuidam de várias contas.</p>
+               <button onClick={onStart} className="w-full py-3 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50 mb-6">
+                 Falar com Consultor
+               </button>
+               <ul className="space-y-3 text-sm text-gray-600">
+                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> Multi-clientes</li>
+                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> Marca Branca (White Label)</li>
+                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> Tudo do Plano Pro</li>
+               </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-3xl mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Perguntas Frequentes</h2>
+          </div>
+          
+          <div className="space-y-4">
+            {faqs.map((faq, idx) => (
+              <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
+                <button 
+                  onClick={() => toggleFaq(idx)}
+                  className="w-full flex justify-between items-center p-5 text-left bg-gray-50 hover:bg-gray-100 transition-colors"
+                >
+                  <span className="font-bold text-gray-900">{faq.q}</span>
+                  {openFaq === idx ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </button>
+                {openFaq === idx && (
+                  <div className="p-5 bg-white text-gray-600 border-t border-gray-200 animate-fade-in">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-gray-400 py-12">
+        <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-4 gap-8">
+          <div className="col-span-1 md:col-span-2">
+            <div className="flex items-center gap-2 text-white font-bold text-xl mb-4">
+               <ChefHat size={24} /> <span>Cardápio Viral</span>
+            </div>
+            <p className="mb-4 max-w-xs">A plataforma #1 de Marketing com Inteligência Artificial para pequenos negócios de alimentação no Brasil.</p>
+            <div className="flex gap-4">
+               <Instagram className="hover:text-white cursor-pointer" size={24}/>
+               <MessageCircle className="hover:text-white cursor-pointer" size={24}/>
+            </div>
+          </div>
+          <div>
+            <h4 className="text-white font-bold mb-4">Produto</h4>
+            <ul className="space-y-2 text-sm">
+              <li><a href="#" className="hover:text-white">Funcionalidades</a></li>
+              <li><a href="#plans" className="hover:text-white">Preços</a></li>
+              <li><a href="#" className="hover:text-white">Casos de Sucesso</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-white font-bold mb-4">Legal</h4>
+            <ul className="space-y-2 text-sm">
+              <li><a href="#" className="hover:text-white">Termos de Uso</a></li>
+              <li><a href="#" className="hover:text-white">Privacidade</a></li>
+              <li><a href="#" className="hover:text-white">Contato</a></li>
+            </ul>
+          </div>
+        </div>
+        <div className="max-w-6xl mx-auto px-4 mt-12 pt-8 border-t border-gray-800 text-center text-sm">
+           © {new Date().getFullYear()} Cardápio Viral. Feito com ❤️ e IA no Brasil.
+        </div>
+      </footer>
     </div>
-    <div className="bg-white p-4 rounded-full shadow-lg mb-6 text-orange-600">
-      <ChefHat size={48} />
-    </div>
-    <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 mb-4 tracking-tight">
-      Cardápio <span className="text-orange-600">Viral</span>
-    </h1>
-    <p className="text-lg md:text-xl text-gray-600 max-w-2xl mb-8">
-      A IA que cria seu cardápio digital e gera conteúdo para seu Instagram e WhatsApp em 5 minutos.
-      Perfeito para Bares, Pizzarias e Lanchonetes.
-    </p>
-    <div className="flex flex-col md:flex-row gap-4 w-full max-w-md">
-      <button 
-        onClick={onStart}
-        className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 px-8 rounded-xl shadow-xl transition-transform hover:scale-105"
-      >
-        Começar Grátis Agora
-      </button>
-    </div>
-    <div className="mt-12 grid grid-cols-3 gap-4 text-sm text-gray-500">
-      <div className="flex flex-col items-center">
-        <Sparkles className="mb-2 text-yellow-500" />
-        <span>Posts com IA</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <MenuIcon className="mb-2 text-blue-500" />
-        <span>Cardápio QR</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <Share2 className="mb-2 text-green-500" />
-        <span>Vendas Zap</span>
-      </div>
-    </div>
-  </div>
-);
+  );
+};
 
 const AuthScreen = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
   const [email, setEmail] = useState('');
@@ -995,431 +1273,190 @@ const ProductsManager = ({ products, onAdd, onDelete, profile, onUpgrade }: {
   );
 };
 
-// ... ContentGenerator remains the same ...
-const ContentGenerator = ({ 
+const GeneratorView = ({ 
   profile, 
   products, 
-  onGenerated,
-  initialMode = 'PACK_SEMANAL',
-  generatedCount,
-  onUpgrade
+  onSave 
 }: { 
   profile: BusinessProfile, 
   products: Product[], 
-  onGenerated: (items: GeneratedContent[]) => void,
-  initialMode?: 'PACK_SEMANAL' | 'OFERTA_DIA' | 'RESPOSTA',
-  generatedCount: number,
-  onUpgrade: () => void
+  onSave: (c: GeneratedContent) => void 
 }) => {
   const [loading, setLoading] = useState(false);
   const [generated, setGenerated] = useState<GeneratedContent[]>([]);
-  const [mode, setMode] = useState<'PACK_SEMANAL' | 'OFERTA_DIA' | 'RESPOSTA'>(initialMode);
-  const [customInput, setCustomInput] = useState('');
-
-  const tier = profile.subscription?.tier || PlanTier.FREE;
-  const limits = PLAN_CONFIG[tier].limits;
-  const isLimitReached = generatedCount >= limits.generations;
-
-  // Update mode if initialMode prop changes (e.g. re-navigating)
-  useEffect(() => {
-    setMode(initialMode);
-    // Clear previous results when mode changes to avoid confusion
-    if (initialMode !== mode) {
-      setGenerated([]); 
-    }
-  }, [initialMode]);
+  const [selectedType, setSelectedType] = useState<'PACK_SEMANAL' | 'OFERTA_DIA' | 'RESPOSTA'>('PACK_SEMANAL');
+  const [customContext, setCustomContext] = useState('');
 
   const handleGenerate = async () => {
-    if (isLimitReached) {
-      onUpgrade();
+    if (products.length === 0) {
+      alert("Adicione produtos ao cardápio antes de gerar conteúdo.");
       return;
     }
-
     setLoading(true);
-    setGenerated([]);
     try {
-      const results = await generateMarketingContent(profile, products, mode, customInput);
-      
-      // Save to Supabase
-      const resultsWithUser = results.map(r => ({
-          user_id: profile.user_id,
-          type: r.type,
-          hook: r.hook,
-          caption: r.caption,
-          cta: r.cta,
-          hashtags: r.hashtags,
-          script: r.script || null,
-          suggestion: r.suggestion || null
-      }));
-
-      const { data, error } = await supabase.from('generated_content').insert(resultsWithUser).select();
-      
-      if (!error && data) {
-         setGenerated(data as GeneratedContent[]);
-         onGenerated(data as GeneratedContent[]);
-      } else {
-         // Fallback if DB fails but AI worked
-         setGenerated(results);
-      }
-
+      const results = await generateMarketingContent(profile, products, selectedType, customContext);
+      setGenerated(results);
+      results.forEach(onSave);
     } catch (e: any) {
-      // Tratamento de erro específico para cotas e limites
-      if (e.message?.includes('429') || e.status === 429 || e.toString().includes('Quota exceeded')) {
-         alert("O Chef Viral está com muitas demandas no momento! 👨‍🍳🔥\n\nAguarde cerca de 30 segundos e tente novamente.");
-      } else {
-         alert("Erro ao gerar conteúdo: " + (e.message || "Tente novamente."));
-      }
-      console.error(e);
+      alert(e.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    const btn = document.activeElement as HTMLElement;
-    if (btn) {
-       const originalText = btn.innerText;
-       btn.innerText = 'Copiado!';
-       setTimeout(() => btn.innerText = originalText, 1000);
-    }
-  };
-
-  // Helper to extract items for the Bundle view
-  const bundleItems = {
-    insta: generated.find(i => i.type === 'FEED'),
-    zap: generated.find(i => i.type === 'WHATSAPP'),
-    art: generated.find(i => i.type === 'STORY') // Used for visual prompt
-  };
-
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <div className="flex justify-between items-center mb-4">
-           <h2 className="text-xl font-bold">Gerador de Conteúdo IA</h2>
-           <span className={`text-xs px-2 py-1 rounded font-bold ${isLimitReached ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-             {generatedCount} / {limits.generations > 1000 ? 'Ilimitado' : limits.generations} usos
-           </span>
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 animate-fade-in">
+        <h2 className="text-xl font-bold mb-4 text-gray-900">IA de Marketing</h2>
+        <p className="text-sm text-gray-500 mb-6">Escolha o tipo de conteúdo que deseja criar hoje.</p>
+
+        <div className="flex flex-wrap gap-2 mb-6">
+          <button 
+             onClick={() => setSelectedType('PACK_SEMANAL')} 
+             className={`px-4 py-2 rounded-lg border font-medium text-sm transition-colors ${selectedType === 'PACK_SEMANAL' ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+          >
+            Pack Semanal (5 posts)
+          </button>
+          <button 
+             onClick={() => setSelectedType('OFERTA_DIA')} 
+             className={`px-4 py-2 rounded-lg border font-medium text-sm transition-colors ${selectedType === 'OFERTA_DIA' ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+          >
+            Oferta Relâmpago
+          </button>
+          <button 
+             onClick={() => setSelectedType('RESPOSTA')} 
+             className={`px-4 py-2 rounded-lg border font-medium text-sm transition-colors ${selectedType === 'RESPOSTA' ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+          >
+            Responder Cliente
+          </button>
         </div>
         
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
-          {[
-            { id: 'PACK_SEMANAL', label: 'Pack Semanal', icon: LayoutDashboard },
-            { id: 'OFERTA_DIA', label: 'Oferta do Dia', icon: Zap },
-            { id: 'RESPOSTA', label: 'Responder Cliente', icon: MessageCircle }
-          ].map(opt => (
-            <button
-              key={opt.id}
-              onClick={() => { setMode(opt.id as any); setGenerated([]); }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border whitespace-nowrap transition-colors ${
-                mode === opt.id ? 'bg-orange-600 text-white border-orange-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              <opt.icon size={16} /> {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {mode === 'RESPOSTA' && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">O que o cliente perguntou?</label>
-            <input 
-              className="w-full border border-gray-300 rounded-lg p-3"
-              placeholder="Ex: Tem opção vegetariana? Aceita Pix?"
-              value={customInput}
-              onChange={e => setCustomInput(e.target.value)}
-            />
-          </div>
+        {selectedType === 'RESPOSTA' && (
+           <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Mensagem do Cliente</label>
+              <textarea 
+                className="w-full border border-gray-300 p-3 rounded-lg outline-none focus:ring-2 focus:ring-orange-500" 
+                placeholder="Ex: 'Qual o valor da entrega?' ou 'Tem opção vegetariana?'" 
+                rows={3}
+                value={customContext}
+                onChange={e => setCustomContext(e.target.value)}
+              />
+           </div>
         )}
-
-        {mode === 'OFERTA_DIA' && (
-           <div className="mb-4 p-4 bg-orange-50 rounded-lg border border-orange-100">
-             <h3 className="text-sm font-bold text-orange-800 mb-2 flex items-center gap-2">
-               <CheckCircle size={16}/> Fonte da Verdade
-             </h3>
-             <p className="text-xs text-orange-700 mb-3">
-               A IA usará apenas seus produtos cadastrados. Quer focar em algum específico?
-             </p>
+        
+        {selectedType === 'OFERTA_DIA' && (
+           <div className="mb-4">
+             <label className="block text-sm font-medium text-gray-700 mb-2">Produto em Destaque (Opcional)</label>
              <select 
-               className="w-full border border-orange-200 rounded-lg p-2 text-sm bg-white"
-               onChange={e => setCustomInput(e.target.value)}
+               className="w-full border border-gray-300 p-3 rounded-lg outline-none focus:ring-2 focus:ring-orange-500"
+               value={customContext}
+               onChange={e => setCustomContext(e.target.value)}
              >
-               <option value="">Escolha automática (IA decide)</option>
-               {products.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+               <option value="">A IA escolhe o melhor</option>
+               {products.map(p => <option key={p.id} value={p.name}>{p.name} - R$ {p.price}</option>)}
              </select>
-         </div>
+           </div>
         )}
 
         <button 
-          onClick={handleGenerate}
+          onClick={handleGenerate} 
           disabled={loading}
-          className={`w-full font-bold py-3 rounded-lg flex justify-center items-center gap-2 transition-all active:scale-95
-             ${isLimitReached 
-                ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-                : 'bg-gray-900 hover:bg-black text-white'
-             }
-          `}
+          className="bg-gradient-to-r from-orange-600 to-orange-500 text-white font-bold py-4 px-6 rounded-xl w-full flex items-center justify-center gap-3 hover:shadow-lg transition-all transform hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:transform-none"
         >
-          {loading ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              Cozinhando Conteúdo...
-            </>
-          ) : isLimitReached ? (
-             <>
-               <Lock size={18} /> Limite Atingido (Faça Upgrade)
-             </>
-          ) : (
-            <>
-              {mode === 'OFERTA_DIA' ? 'Gerar Oferta Completa' : 'Gerar Conteúdo'} <Sparkles size={18} />
-            </>
-          )}
+          {loading ? <Loader2 className="animate-spin" size={24} /> : <Sparkles size={24} />} 
+          {loading ? 'A IA está criando...' : 'Gerar Conteúdo Agora'}
         </button>
       </div>
 
-      {/* SPECIAL LAYOUT FOR OFERTA DO DIA BUNDLE */}
-      {mode === 'OFERTA_DIA' && generated.length > 0 && (
-        <div className="space-y-6 animate-fade-in-up">
-           
-           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-             <div className="bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3 flex justify-between items-center text-white">
-                <div className="font-bold flex items-center gap-2"><Smartphone size={18}/> Story / Arte Digital</div>
-                <button className="bg-white/20 hover:bg-white/30 p-2 rounded text-xs font-bold backdrop-blur-sm">Baixar PNG</button>
-             </div>
-             <div className="p-8 flex justify-center bg-gray-100">
-                {/* MOCKUP OF GENERATED ART */}
-                <div className="w-[270px] h-[480px] bg-white shadow-xl rounded-lg overflow-hidden relative flex flex-col">
-                  <div className="h-2/3 bg-gray-200 flex items-center justify-center relative">
-                     <span className="text-gray-400 text-xs text-center px-4">
-                        (Foto do produto) <br/>
-                        {bundleItems.art?.suggestion}
-                     </span>
-                  </div>
-                  <div className="flex-1 bg-yellow-400 p-4 flex flex-col justify-center items-center text-center">
-                     <h3 className="font-black text-2xl uppercase leading-none mb-2 text-black">{bundleItems.art?.hook || "OFERTA!"}</h3>
-                     <p className="font-bold text-xl text-red-600">{bundleItems.art?.caption}</p>
-                     <div className="mt-2 bg-black text-white text-xs px-3 py-1 rounded-full font-bold">PEDIR AGORA</div>
-                  </div>
-                </div>
-             </div>
-           </div>
-
-           <div className="grid md:grid-cols-2 gap-6">
-              {/* Instagram Card */}
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
-                 <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center gap-2 text-pink-600 font-bold"><Instagram size={18}/> Legenda Instagram</div>
-                    <button onClick={() => copyToClipboard(`${bundleItems.insta?.caption}\n\n${bundleItems.insta?.cta}`)} className="text-gray-400 hover:text-gray-900"><Copy size={16}/></button>
-                 </div>
-                 <textarea 
-                    readOnly 
-                    className="w-full h-40 bg-gray-50 border border-gray-100 rounded p-3 text-sm focus:outline-none resize-none"
-                    value={`${bundleItems.insta?.caption}\n\n${bundleItems.insta?.cta}\n\n${bundleItems.insta?.hashtags.join(' ')}`}
-                 />
-              </div>
-
-              {/* WhatsApp Card */}
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
-                 <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center gap-2 text-green-600 font-bold"><MessageCircle size={18}/> Texto WhatsApp</div>
-                    <button onClick={() => copyToClipboard(`${bundleItems.zap?.caption}\n\n${bundleItems.zap?.cta}`)} className="text-gray-400 hover:text-gray-900"><Copy size={16}/></button>
-                 </div>
-                 <textarea 
-                    readOnly 
-                    className="w-full h-40 bg-green-50 border border-green-100 rounded p-3 text-sm focus:outline-none resize-none"
-                    value={`${bundleItems.zap?.caption}\n\n${bundleItems.zap?.cta}`}
-                 />
-              </div>
-           </div>
-        </div>
-      )}
-
-      {/* STANDARD LIST LAYOUT FOR OTHER MODES */}
-      {mode !== 'OFERTA_DIA' && generated.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up">
-          {generated.map((item) => (
-            <div key={item.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col">
-              <div className="bg-gray-50 px-4 py-2 border-b border-gray-100 flex justify-between items-center">
-                <span className="text-xs font-bold uppercase text-gray-500 tracking-wider flex items-center gap-1">
-                  {item.type === 'FEED' && <Instagram size={14} />}
-                  {item.type === 'WHATSAPP' && <MessageCircle size={14} />}
-                  {item.type}
-                </span>
-                <div className="flex gap-2">
-                  <button onClick={() => copyToClipboard(`${item.caption}\n\n${item.cta}`)} className="text-gray-400 hover:text-orange-600" title="Copiar">
-                    <Copy size={16} />
-                  </button>
-                </div>
-              </div>
-              <div className="p-5 flex-1">
-                <div className="mb-3">
-                  <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded font-medium">{item.hook}</span>
-                </div>
-                <p className="text-gray-800 text-sm whitespace-pre-wrap mb-4">{item.caption}</p>
-                
-                {item.script && (
-                  <div className="bg-gray-50 p-3 rounded text-xs text-gray-600 mb-4 border border-gray-200">
-                    <strong>🎬 Roteiro Visual:</strong> {item.script}
-                  </div>
-                )}
-                
-                <p className="text-orange-600 font-medium text-sm">{item.cta}</p>
-                <div className="mt-3 flex flex-wrap gap-1">
-                  {item.hashtags.map(h => (
-                    <span key={h} className="text-xs text-blue-500">{h}</span>
-                  ))}
-                </div>
-              </div>
+      <div className="space-y-6">
+        {generated.map((item, idx) => (
+          <div key={idx} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 animate-fade-in-up" style={{animationDelay: `${idx * 0.1}s`}}>
+            <div className="flex justify-between items-center mb-4 border-b border-gray-50 pb-3">
+              <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase ${
+                  item.type === 'FEED' ? 'bg-blue-100 text-blue-700' :
+                  item.type === 'STORY' ? 'bg-pink-100 text-pink-700' :
+                  item.type === 'WHATSAPP' ? 'bg-green-100 text-green-700' :
+                  'bg-purple-100 text-purple-700'
+              }`}>
+                {item.type}
+              </span>
+              <button 
+                 className="text-gray-400 hover:text-orange-600 flex items-center gap-1 text-sm font-medium transition-colors" 
+                 onClick={() => {
+                    navigator.clipboard.writeText(`${item.hook}\n\n${item.caption}\n\n${item.hashtags.join(' ')}`);
+                    alert('Copiado!');
+                 }}
+              >
+                <Copy size={16}/> Copiar
+              </button>
             </div>
-          ))}
-        </div>
-      )}
+
+            {item.hook && (
+                <div className="mb-3">
+                   <h3 className="font-bold text-lg text-gray-900 leading-snug">{item.hook}</h3>
+                </div>
+            )}
+            
+            <div className="bg-gray-50 p-4 rounded-lg text-gray-700 whitespace-pre-wrap mb-4 font-sans text-sm leading-relaxed border border-gray-100">
+               {item.caption}
+            </div>
+
+            {item.suggestion && (
+              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-sm text-yellow-800 mb-4 flex gap-3 items-start">
+                <div className="bg-yellow-100 p-1.5 rounded-full text-yellow-600 shrink-0 mt-0.5"><Sparkles size={14}/></div>
+                <div>
+                  <strong className="block mb-1 text-yellow-900">Sugestão de Imagem/Arte:</strong>
+                  {item.suggestion}
+                </div>
+              </div>
+            )}
+            
+            {item.cta && (
+               <div className="text-sm font-bold text-orange-600 mb-2">
+                 📢 CTA: {item.cta}
+               </div>
+            )}
+
+            <div className="text-blue-600 text-xs font-medium">{item.hashtags.join(' ')}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
-const MenuPublicView = ({ profile, products }: { profile: BusinessProfile | null, products: Product[] }) => {
-  if (!profile) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
-         <div className="bg-white p-6 rounded-full shadow-sm mb-4">
-            <SearchX size={48} className="text-gray-300" />
-         </div>
-         <h2 className="text-xl font-bold text-gray-900 mb-2">Cardápio não encontrado</h2>
-         <p className="text-gray-500 max-w-md">
-            O link pode estar incorreto.
-         </p>
-         <button onClick={() => window.location.hash = ''} className="mt-8 text-orange-600 font-bold hover:underline">
-            Criar meu próprio Cardápio Viral
-         </button>
-      </div>
-    );
-  }
-
-  // Group products by category
-  const categories = Array.from(new Set(products.map(p => p.category)));
-
+const BillingView = ({ profile }: { profile: BusinessProfile }) => {
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 animate-fade-in">
-      {/* Banner / Header Hero */}
-      <div className="relative">
-        <div className="h-48 md:h-64 bg-gray-900 overflow-hidden">
-          {profile.banner_url ? (
-            <img src={profile.banner_url} alt="Capa" className="w-full h-full object-cover opacity-80" />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-r from-orange-500 to-red-600" />
-          )}
+    <div className="max-w-2xl mx-auto py-8">
+      <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center">
+        <div className="bg-orange-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-orange-600">
+           <User size={40} />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">Sua Assinatura</h2>
+        <p className="text-gray-500 mb-8">Gerencie seu plano e método de pagamento</p>
+
+        <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-8 text-left">
+           <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-gray-500">Plano Atual</span>
+              <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded uppercase">Ativo</span>
+           </div>
+           <div className="text-3xl font-bold text-gray-900 mb-1">{PLAN_CONFIG[profile.subscription?.tier || PlanTier.FREE].name}</div>
+           <div className="text-sm text-gray-500">
+              {profile.subscription?.tier === PlanTier.FREE 
+                ? 'Expira em 7 dias' 
+                : 'Renovação automática mensal'
+              }
+           </div>
         </div>
         
-        {/* Profile Card Floating */}
-        <div className="max-w-3xl mx-auto px-4 -mt-16 relative z-10">
-          <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-6">
-             <div className="flex-shrink-0">
-               {profile.logo_url ? (
-                 <img src={profile.logo_url} className="w-24 h-24 rounded-full border-4 border-white shadow-md object-cover bg-white" alt="Logo" />
-               ) : (
-                 <div className="w-24 h-24 rounded-full border-4 border-white shadow-md bg-orange-100 flex items-center justify-center text-orange-600">
-                    <ChefHat size={40} />
-                 </div>
-               )}
-             </div>
-             <div className="flex-1">
-                <h1 className="text-2xl font-bold text-gray-900 mb-1">{profile.name}</h1>
-                <div className="flex flex-wrap justify-center md:justify-start gap-2 text-sm text-gray-500 mb-3">
-                   <span className="flex items-center gap-1"><MapPin size={14}/> {profile.city}</span>
-                   <span>•</span>
-                   <span>{profile.category}</span>
-                </div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
-                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Aberto Agora
-                </div>
-             </div>
-             <div>
-                <a 
-                   href={`https://wa.me/55${profile.phone.replace(/\D/g, '')}`} 
-                   target="_blank" 
-                   rel="noreferrer"
-                   className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full shadow-lg flex items-center gap-2 transition-transform hover:scale-105"
-                >
-                  <MessageCircle size={20} /> Pedir no WhatsApp
-                </a>
-             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Categories Navigation (Stickyish) */}
-      <div className="sticky top-0 bg-gray-50/95 backdrop-blur-sm z-20 py-4 shadow-sm border-b border-gray-200 mt-4 overflow-x-auto no-scrollbar">
-         <div className="max-w-3xl mx-auto px-4 flex gap-2">
-            {categories.map(cat => (
-              <a 
-                href={`#cat-${cat}`} 
-                key={cat}
-                className="whitespace-nowrap px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-700 transition-colors"
-              >
-                {cat}
-              </a>
-            ))}
-         </div>
-      </div>
-
-      {/* Menu Categories */}
-      <div className="max-w-3xl mx-auto px-4 mt-6 space-y-10">
-        {categories.map(cat => (
-          <div key={cat} id={`cat-${cat}`} className="scroll-mt-24">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              {cat}
-              <div className="h-px bg-gray-200 flex-1 ml-4"></div>
-            </h2>
-            
-            <div className="grid gap-4">
-              {products.filter(p => p.category === cat).map(product => (
-                <div key={product.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex gap-4">
-                  {/* Text Content */}
-                  <div className="flex-1 flex flex-col justify-between">
-                     <div>
-                        <div className="flex justify-between items-start">
-                          <h3 className="font-bold text-gray-900 text-lg leading-tight mb-1">{product.name}</h3>
-                          {product.isPopular && (
-                            <span className="bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide flex items-center gap-1">
-                               <Sparkles size={10} /> Top
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed">{product.description}</p>
-                     </div>
-                     <div className="mt-3 flex items-center justify-between">
-                        <span className="text-lg font-bold text-green-700">R$ {product.price.toFixed(2)}</span>
-                        <a 
-                          href={`https://wa.me/55${profile.phone.replace(/\D/g, '')}?text=Olá, gostaria de pedir: ${product.name}`}
-                          target="_blank"
-                          rel="noreferrer" 
-                          className="text-sm font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1"
-                        >
-                          Adicionar <Plus size={16}/>
-                        </a>
-                     </div>
-                  </div>
-
-                  {/* Image Content */}
-                  {product.image_url ? (
-                    <div className="w-28 h-28 flex-shrink-0">
-                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover rounded-lg bg-gray-100" />
-                    </div>
-                  ) : (
-                    // Placeholder if no image, specific to category could be nice, but simple generic for now
-                    null 
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      <div className="text-center text-gray-400 text-xs mt-12 pb-4">
-        <p className="mb-2">Imagens meramente ilustrativas.</p>
-        Cardápio Digital por <span className="font-bold text-orange-400">ViralMenu</span>
+        <button 
+           onClick={() => alert("Integração com Stripe Customer Portal viria aqui.")}
+           className="w-full bg-gray-900 text-white px-6 py-4 rounded-xl font-bold hover:bg-black transition-colors flex items-center justify-center gap-2"
+        >
+           <ExternalLink size={18} />
+           Abrir Portal do Cliente
+        </button>
+        <p className="text-xs text-gray-400 mt-4">Você será redirecionado para a página segura de pagamentos.</p>
       </div>
     </div>
   );
@@ -1427,121 +1464,75 @@ const MenuPublicView = ({ profile, products }: { profile: BusinessProfile | null
 
 const App = () => {
   const [view, setView] = useState<AppView>(AppView.LANDING);
+  const [session, setSession] = useState<any>(null);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [contentHistory, setContentHistory] = useState<GeneratedContent[]>([]);
-  const [generatorInitialMode, setGeneratorInitialMode] = useState<'PACK_SEMANAL' | 'OFERTA_DIA' | 'RESPOSTA'>('PACK_SEMANAL');
-  const [checkoutLoading, setCheckoutLoading] = useState<PlanTier | null>(null);
+  const [generatedContents, setGeneratedContents] = useState<GeneratedContent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load Initial State
+  // Check Auth and Load Data
   useEffect(() => {
-    checkUser();
-    
-    // Listen for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-       if (event === 'SIGNED_IN') checkUser();
-       if (event === 'SIGNED_OUT') {
-           setProfile(null);
-           setProducts([]);
-           setView(AppView.LANDING);
-       }
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
-  // Hash Routing for Public Links
-  useEffect(() => {
-    const handleHashChange = async () => {
-      if (window.location.hash.startsWith('#/m/')) {
-        setLoading(true);
-        const slug = window.location.hash.replace('#/m/', '').split('?')[0];
-        
-        // Fetch Public Profile
-        const { data: publicProfile, error: pError } = await supabase
-           .from('profiles')
-           .select('*')
-           .eq('slug', slug)
-           .single();
-
-        if (publicProfile) {
-           const { data: publicProducts } = await supabase
-              .from('products')
-              .select('*')
-              .eq('user_id', publicProfile.user_id);
-              
-           setProfile(publicProfile as BusinessProfile);
-           setProducts(publicProducts as Product[] || []);
-           setView(AppView.MENU_PREVIEW);
-        } else {
-           setProfile(null);
-           setView(AppView.MENU_PREVIEW);
-        }
+    // 1. Initial Session Check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        fetchUserData(session.user.id);
+      } else {
         setLoading(false);
       }
-    };
+    });
 
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    // 2. Auth State Listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) {
+        // If we just logged in or refreshed, fetch data
+        if (!profile) fetchUserData(session.user.id);
+      } else {
+        // Logged out
+        setProfile(null);
+        setProducts([]);
+        setView(AppView.LANDING);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const checkUser = async () => {
+  const fetchUserData = async (userId: string) => {
     setLoading(true);
     try {
-      const userResult = await supabase.auth.getUser();
-      const user = userResult.data?.user;
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
       
-      // If user is on a public link, don't override with dashboard check
-      if (window.location.hash.startsWith('#/m/')) {
-          setLoading(false);
-          return; 
+      if (error && error.code !== 'PGRST116') {
+         console.error("Error fetching profile:", error);
       }
 
-      if (user) {
-        // Fetch Profile
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+      if (profileData) {
+        setProfile(profileData);
         
-        if (profileData) {
-          setProfile(profileData as BusinessProfile);
+        const { data: productsData } = await supabase
+          .from('products')
+          .select('*')
+          .eq('user_id', userId);
           
-          // Fetch Products
-          const { data: prodData } = await supabase
-              .from('products')
-              .select('*')
-              .eq('user_id', user.id);
-          setProducts(prodData as Product[] || []);
+        if (productsData) setProducts(productsData);
 
-          // Fetch History
-          const { data: histData } = await supabase
-              .from('generated_content')
-              .select('*')
-              .eq('user_id', user.id)
-              .order('created_at', { ascending: false });
-          setContentHistory(histData as GeneratedContent[] || []);
-
-          setView(AppView.DASHBOARD);
-        } else {
-          // User logged in but no profile yet
-          setView(AppView.ONBOARDING);
+        // Se estava no LANDING ou AUTH, vai pro DASHBOARD
+        if (view === AppView.LANDING || view === AppView.AUTH) {
+           setView(AppView.DASHBOARD);
         }
       } else {
-        // Not logged in
-        if (view !== AppView.LANDING && view !== AppView.AUTH) {
-            setView(AppView.LANDING);
-        }
+        // Authenticated but no profile -> Onboarding
+        setView(AppView.ONBOARDING);
       }
-    } catch (e) {
-      console.error("Auth check failed", e);
-      // Fallback safely to landing if supabase is down or misconfigured
-      if (view !== AppView.LANDING) setView(AppView.LANDING);
+    } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -1549,170 +1540,83 @@ const App = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-  };
-
-  const handleOnboardingComplete = (p: BusinessProfile, items: Product[]) => {
-    setProfile(p);
-    setProducts(items);
-    setView(AppView.DASHBOARD);
-  };
-
-  // Stripe Handling (Mocked for now, but ready for real)
-  const handleCheckout = async (plan: PlanTier) => {
-    if (!profile) return;
-    setCheckoutLoading(plan);
-    // ... Stripe logic stays similar, but would usually call a backend function to create session
-    // For now, we mock success redirect
-    setTimeout(() => {
-        window.location.href = `${window.location.origin}?success=true&plan=${plan}`;
-    }, 1500);
-  };
-
-  const handleDeleteProduct = (id: string) => {
-    setProducts(products.filter(p => p.id !== id));
-  };
-
-  const handleAddProduct = (p: Product) => {
-    setProducts([...products, p]);
-  };
-
-  const handleContentGenerated = (items: GeneratedContent[]) => {
-    setContentHistory([...items, ...contentHistory]);
-  };
-
-  const handleChangeView = (newView: AppView) => {
-    setView(newView);
-    if (newView === AppView.GENERATOR) {
-        setGeneratorInitialMode('PACK_SEMANAL');
-    }
-  };
-
-  const handleQuickAction = () => {
-    setGeneratorInitialMode('OFERTA_DIA');
-    setView(AppView.GENERATOR);
+    setView(AppView.LANDING);
   };
 
   if (loading) {
-     return <div className="h-screen flex items-center justify-center bg-gray-50 text-orange-600"><ChefHat className="animate-bounce" size={48} /></div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-4">
+           <Loader2 className="animate-spin text-orange-600" size={48} />
+           <p className="text-gray-500 font-medium animate-pulse">Carregando seu cardápio...</p>
+        </div>
+      </div>
+    );
   }
 
-  if (view === AppView.MENU_PREVIEW) {
-    return <MenuPublicView profile={profile} products={products} />;
-  }
+  // Routing
+  const renderView = () => {
+    switch (view) {
+      case AppView.LANDING:
+        return <Landing onStart={() => setView(AppView.AUTH)} onLogin={() => setView(AppView.AUTH)} />;
+      
+      case AppView.AUTH:
+        return <AuthScreen onAuthSuccess={() => { /* Handled by AuthStateChange */ }} />;
+      
+      case AppView.ONBOARDING:
+        return <Onboarding onComplete={(p, prods) => { setProfile(p); setProducts(prods); setView(AppView.DASHBOARD); }} />;
+      
+      case AppView.DASHBOARD:
+        if (!profile) return null;
+        return (
+           <Dashboard 
+              profile={profile} 
+              generatedCount={generatedContents.length} 
+              products={products}
+              onQuickAction={() => setView(AppView.GENERATOR)}
+              onUpgrade={() => setView(AppView.BILLING)}
+           />
+        );
+
+      case AppView.PRODUCTS:
+        if (!profile) return null;
+        return (
+           <ProductsManager 
+             products={products} 
+             profile={profile}
+             onAdd={(p) => setProducts([...products, p])}
+             onDelete={(id) => setProducts(products.filter(p => p.id !== id))}
+             onUpgrade={() => setView(AppView.BILLING)}
+           />
+        );
+
+      case AppView.GENERATOR:
+        if (!profile) return null;
+        return (
+           <GeneratorView 
+             profile={profile} 
+             products={products} 
+             onSave={(c) => setGeneratedContents([c, ...generatedContents])} 
+           />
+        );
+
+      case AppView.BILLING:
+        if (!profile) return null;
+        return <BillingView profile={profile} />;
+
+      default:
+        return <Landing onStart={() => setView(AppView.AUTH)} onLogin={() => setView(AppView.AUTH)} />;
+    }
+  };
 
   return (
     <Layout 
       currentView={view} 
-      onChangeView={handleChangeView} 
+      onChangeView={setView} 
       profile={profile}
       onLogout={handleLogout}
     >
-      {view === AppView.LANDING && (
-          <Landing 
-            onStart={() => setView(AppView.AUTH)} 
-            onLogin={() => setView(AppView.AUTH)}
-          />
-      )}
-
-      {view === AppView.AUTH && <AuthScreen onAuthSuccess={checkUser} />}
-      
-      {view === AppView.ONBOARDING && <Onboarding onComplete={handleOnboardingComplete} />}
-      
-      {view === AppView.DASHBOARD && profile && (
-        <Dashboard 
-            profile={profile} 
-            generatedCount={contentHistory.length} 
-            onQuickAction={handleQuickAction}
-            onUpgrade={() => setView(AppView.BILLING)}
-            products={products}
-        />
-      )}
-      
-      {view === AppView.PRODUCTS && profile && (
-        <ProductsManager 
-          products={products} 
-          onAdd={handleAddProduct} 
-          onDelete={handleDeleteProduct} 
-          profile={profile}
-          onUpgrade={() => setView(AppView.BILLING)}
-        />
-      )}
-      
-      {view === AppView.GENERATOR && profile && (
-        <ContentGenerator 
-          profile={profile} 
-          products={products} 
-          onGenerated={handleContentGenerated} 
-          initialMode={generatorInitialMode}
-          generatedCount={contentHistory.length}
-          onUpgrade={() => setView(AppView.BILLING)}
-        />
-      )}
-
-      {view === AppView.BILLING && profile && (
-        <div className="max-w-4xl mx-auto pb-10">
-          <h2 className="text-2xl font-bold mb-2 text-center">Planos e Assinatura</h2>
-          <p className="text-center text-gray-500 mb-8">Escalável para o tamanho da sua fome de crescer.</p>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className={`bg-white p-6 rounded-xl border ${profile.subscription?.tier === PlanTier.SOLO ? 'border-orange-500 ring-1 ring-orange-500' : 'border-gray-200'}`}>
-              <h3 className="font-bold text-lg">Solo</h3>
-              <div className="text-3xl font-bold mt-2">R$ 29<span className="text-sm font-normal text-gray-500">/mês</span></div>
-              <ul className="mt-6 space-y-3 text-sm text-gray-600">
-                <li className="flex gap-2"><Sparkles size={16} className="text-green-500"/> 10 Posts/mês</li>
-                <li className="flex gap-2"><Utensils size={16} className="text-green-500"/> Até 20 produtos</li>
-                <li className="flex gap-2"><User size={16} className="text-green-500"/> 1 Usuário</li>
-              </ul>
-              <button 
-                onClick={() => handleCheckout(PlanTier.SOLO)}
-                disabled={profile.subscription?.tier === PlanTier.SOLO || checkoutLoading !== null}
-                className="w-full mt-6 py-2 border border-orange-600 text-orange-600 rounded-lg font-bold hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
-              >
-                {checkoutLoading === PlanTier.SOLO && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600"></div>}
-                {profile.subscription?.tier === PlanTier.SOLO ? 'Plano Atual' : 'Assinar Solo'}
-              </button>
-            </div>
-             <div className={`bg-white p-6 rounded-xl border-2 relative shadow-lg transform md:-translate-y-2 ${profile.subscription?.tier === PlanTier.PRO ? 'border-orange-600' : 'border-orange-400'}`}>
-              <div className="absolute top-0 right-0 bg-orange-500 text-white text-xs px-2 py-1 rounded-bl-lg font-bold">POPULAR</div>
-              <h3 className="font-bold text-lg text-orange-600">Pro</h3>
-              <div className="text-3xl font-bold mt-2">R$ 59<span className="text-sm font-normal text-gray-500">/mês</span></div>
-              <ul className="mt-6 space-y-3 text-sm text-gray-600">
-                <li className="flex gap-2"><Sparkles size={16} className="text-green-500"/> Ilimitado</li>
-                <li className="flex gap-2"><Utensils size={16} className="text-green-500"/> Produtos Ilimitados</li>
-                <li className="flex gap-2"><Sparkles size={16} className="text-green-500"/> Pack Mensal IA</li>
-              </ul>
-              <button 
-                onClick={() => handleCheckout(PlanTier.PRO)}
-                disabled={profile.subscription?.tier === PlanTier.PRO || checkoutLoading !== null}
-                className="w-full mt-6 py-2 bg-orange-600 text-white rounded-lg font-bold hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
-              >
-                {checkoutLoading === PlanTier.PRO && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
-                {profile.subscription?.tier === PlanTier.PRO ? 'Plano Atual' : 'Assinar Pro'}
-              </button>
-            </div>
-             <div className={`bg-white p-6 rounded-xl border ${profile.subscription?.tier === PlanTier.AGENCY ? 'border-orange-500 ring-1 ring-orange-500' : 'border-gray-200'}`}>
-              <h3 className="font-bold text-lg">Agência</h3>
-              <div className="text-3xl font-bold mt-2">R$ 99<span className="text-sm font-normal text-gray-500">/mês</span></div>
-              <ul className="mt-6 space-y-3 text-sm text-gray-600">
-                <li className="flex gap-2"><User size={16} className="text-green-500"/> Multi-clientes</li>
-                <li className="flex gap-2"><Sparkles size={16} className="text-green-500"/> Marca Branca</li>
-                <li className="flex gap-2"><Sparkles size={16} className="text-green-500"/> Suporte Prioritário</li>
-              </ul>
-              <button 
-                onClick={() => handleCheckout(PlanTier.AGENCY)}
-                disabled={profile.subscription?.tier === PlanTier.AGENCY || checkoutLoading !== null}
-                className="w-full mt-6 py-2 border border-gray-300 text-gray-900 rounded-lg font-bold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
-              >
-                {checkoutLoading === PlanTier.AGENCY && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>}
-                {profile.subscription?.tier === PlanTier.AGENCY ? 'Plano Atual' : 'Falar com Vendas'}
-              </button>
-            </div>
-          </div>
-          <div className="mt-8 text-center text-xs text-gray-400">
-            <p>Pagamentos processados via Stripe.</p>
-          </div>
-        </div>
-      )}
+      {renderView()}
     </Layout>
   );
 };
