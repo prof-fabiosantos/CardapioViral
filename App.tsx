@@ -569,6 +569,17 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, products:
    });
    const [loading, setLoading] = useState(false);
 
+   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0];
+     if (file) {
+       const reader = new FileReader();
+       reader.onloadend = () => {
+         setFormData(prev => ({ ...prev, logo_url: reader.result as string }));
+       };
+       reader.readAsDataURL(file);
+     }
+   };
+
    const handleSubmit = async () => {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
@@ -643,8 +654,11 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, products:
                    <input className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-orange-500" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Ex: Pizzaria do João" />
                 </div>
                 <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-1">URL do Logo (Opcional)</label>
-                   <input className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-orange-500" value={formData.logo_url} onChange={e => setFormData({...formData, logo_url: e.target.value})} placeholder="https://..." />
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Logomarca</label>
+                   <div className="flex items-center gap-4">
+                      {formData.logo_url && <img src={formData.logo_url} className="w-16 h-16 rounded-full object-cover border" />}
+                      <input type="file" accept="image/*" onChange={handleLogoUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"/>
+                   </div>
                 </div>
                 <div>
                    <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
