@@ -1,18 +1,12 @@
 import { supabase } from '../lib/supabaseClient';
-import { GeneratedContent } from '../types';
+import { GeneratedContent, PublicProduct } from '../types';
 
 export const dbService = {
   /**
    * Salva um conteúdo gerado pela IA no banco de dados.
    */
   async saveGeneratedContent(userId: string, content: GeneratedContent) {
-    // Remove campos que não precisam ir pro JSONB ou ajusta formatos
-    const contentToSave = {
-      ...content,
-      // Se houver imagem base64 muito grande, idealmente faríamos upload pro Storage, 
-      // mas para MVP vamos tentar salvar direto ou omitir se for muito pesado.
-      // Para este exemplo, salvaremos tudo.
-    };
+    const contentToSave = { ...content };
 
     const { error } = await supabase.from('generated_contents').insert({
       user_id: userId,
@@ -21,7 +15,6 @@ export const dbService = {
     });
 
     if (error) {
-      // Se a tabela não existir, apenas avisa e segue a vida
       if (error.code === '42P01') { 
          console.warn("⚠️ Tabela 'generated_contents' não existe no Supabase. O histórico não será salvo.");
          return; 
@@ -33,7 +26,6 @@ export const dbService = {
 
   /**
    * Busca a contagem de conteúdos gerados pelo usuário no período (ex: este mês).
-   * Usado para verificar limites do plano.
    */
   async getGenerationCount(userId: string): Promise<number> {
     const startOfMonth = new Date();
@@ -47,7 +39,7 @@ export const dbService = {
       .gte('created_at', startOfMonth.toISOString());
 
     if (error) {
-      if (error.code === '42P01') return 0; // Fail silent se tabela nao existe
+      if (error.code === '42P01') return 0; 
       console.error('Erro ao contar gerações:', error);
       return 0;
     }
@@ -67,7 +59,7 @@ export const dbService = {
       .limit(limit);
 
     if (error) {
-      if (error.code === '42P01') return []; // Fail silent
+      if (error.code === '42P01') return []; 
       console.error('Erro ao buscar histórico:', error);
       return [];
     }
@@ -79,11 +71,9 @@ export const dbService = {
   },
 
   /**
-   * Registra um evento de Analytics (Visita ou Clique).
-   * Pode ser chamado publicamente (sem auth) para visitas de clientes.
+   * Analytics
    */
   async trackEvent(profileId: string, eventType: 'VIEW' | 'CLICK_WHATSAPP') {
-    // Tenta salvar. Se falhar (ex: bloqueador de ad), não quebra a aplicação.
     try {
        await supabase.from('analytics_events').insert({
          profile_id: profileId,
@@ -94,14 +84,10 @@ export const dbService = {
     }
   },
 
-  /**
-   * Busca estatísticas para o Dashboard (últimos 7 dias).
-   */
   async getAnalyticsStats(profileId: string) {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    // Buscar Visitas
     const { count: visits, error: vError } = await supabase
       .from('analytics_events')
       .select('*', { count: 'exact', head: true })
@@ -111,7 +97,6 @@ export const dbService = {
     
     if (vError && vError.code === '42P01') return { visits: 0, clicks: 0 };
 
-    // Buscar Cliques
     const { count: clicks } = await supabase
       .from('analytics_events')
       .select('*', { count: 'exact', head: true })
@@ -123,5 +108,82 @@ export const dbService = {
       visits: visits || 0,
       clicks: clicks || 0
     };
+  },
+
+  /**
+   * MARKETPLACE / DISCOVERY
+   * Busca produtos de todos os restaurantes com filtros
+   */
+  async searchGlobalProducts(filters: {
+    city?: string;
+    category?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    searchTerm?: string;
+  }): Promise<PublicProduct[]> {
+    try {
+      // 1. Primeiro buscamos os produtos que batem com os filtros de produto
+      let query = supabase.from('products').select('*');
+
+      if (filters.category) {
+        query = query.eq('category', filters.category);
+      }
+      if (filters.minPrice !== undefined) {
+        query = query.gte('price', filters.minPrice);
+      }
+      if (filters.maxPrice !== undefined) {
+        query = query.lte('price', filters.maxPrice);
+      }
+      if (filters.searchTerm) {
+        query = query.ilike('name', `%${filters.searchTerm}%`);
+      }
+
+      // Limitamos a 50 produtos para não sobrecarregar
+      const { data: products, error } = await query.limit(50);
+      
+      if (error) throw error;
+      if (!products || products.length === 0) return [];
+
+      // 2. Coletamos os IDs dos usuários donos desses produtos
+      const userIds = [...new Set(products.map((p: any) => p.user_id))];
+
+      // 3. Buscamos os perfis desses usuários (Restaurantes)
+      // Se tiver filtro de cidade, aplicamos aqui
+      let profilesQuery = supabase.from('profiles').select('user_id, name, slug, city, phone, logo_url').in('user_id', userIds);
+      
+      if (filters.city) {
+        profilesQuery = profilesQuery.ilike('city', `%${filters.city}%`);
+      }
+
+      const { data: profiles, error: profilesError } = await profilesQuery;
+      
+      if (profilesError) throw profilesError;
+
+      // 4. Cruzamos os dados (Join manual no cliente)
+      // Apenas retornamos produtos cujo dono (profile) foi encontrado (respeitando o filtro de cidade)
+      const results: PublicProduct[] = [];
+      
+      products.forEach((product: any) => {
+        const ownerProfile = profiles?.find((p: any) => p.user_id === product.user_id);
+        if (ownerProfile) {
+          results.push({
+            ...product,
+            profile: {
+              name: ownerProfile.name,
+              slug: ownerProfile.slug,
+              city: ownerProfile.city,
+              phone: ownerProfile.phone,
+              logo_url: ownerProfile.logo_url
+            }
+          });
+        }
+      });
+
+      return results;
+
+    } catch (err) {
+      console.error("Erro na busca global:", err);
+      return [];
+    }
   }
 };

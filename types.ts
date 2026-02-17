@@ -29,6 +29,17 @@ export interface Product {
   isPopular?: boolean;
 }
 
+// Interface estendida para quando buscamos produtos com dados do restaurante (Join)
+export interface PublicProduct extends Product {
+  profile?: {
+    name: string;
+    slug: string;
+    city: string;
+    phone: string;
+    logo_url?: string;
+  }
+}
+
 export enum PlanTier {
   FREE = 'FREE',
   SOLO = 'SOLO',
@@ -84,5 +95,6 @@ export enum AppView {
   PRODUCTS = 'PRODUCTS',
   GENERATOR = 'GENERATOR',
   MENU_PREVIEW = 'MENU_PREVIEW',
-  BILLING = 'BILLING'
+  BILLING = 'BILLING',
+  DISCOVERY = 'DISCOVERY' // Nova view
 }
