@@ -1054,15 +1054,19 @@ const MenuPublicView = ({ profile, products }: { profile: BusinessProfile | null
 
    return (
       <div className="min-h-screen bg-gray-50 pb-20">
-         <div style={{ backgroundColor: profile.themeColor || '#ea580c' }} className="pb-16 pt-8 px-4 text-white rounded-b-[2rem] shadow-lg">
+         <div style={{ backgroundColor: profile.themeColor || '#ea580c' }} className="pb-10 pt-6 px-4 text-white rounded-b-[2rem] shadow-lg">
             <div className="max-w-md mx-auto text-center">
-               {profile.logo_url ? <img src={profile.logo_url} className="w-24 h-24 rounded-full border-4 border-white mx-auto mb-4 shadow-md"/> : <div className="w-24 h-24 rounded-full bg-white/20 mx-auto mb-4 flex items-center justify-center text-4xl font-bold">{profile.name.charAt(0)}</div>}
+               {profile.logo_url ? <img src={profile.logo_url} className="w-24 h-24 rounded-full border-4 border-white mx-auto mb-3 shadow-md"/> : <div className="w-24 h-24 rounded-full bg-white/20 mx-auto mb-3 flex items-center justify-center text-4xl font-bold">{profile.name.charAt(0)}</div>}
                <h1 className="text-2xl font-bold">{profile.name}</h1>
-               <p className="opacity-90 flex items-center justify-center gap-1 mt-1 text-sm"><MapPin size={14}/> {profile.city}</p>
+               <p className="opacity-90 flex items-center justify-center gap-1 mt-1 text-sm">
+                 <MapPin size={14}/> 
+                 {profile.city}
+                 {profile.neighborhood && <span> • {profile.neighborhood}</span>}
+               </p>
             </div>
          </div>
 
-         <div className="max-w-md mx-auto px-4 -mt-8 space-y-8">
+         <div className="max-w-md mx-auto px-4 mt-6 space-y-8">
             {categories.map(cat => (
                <div key={cat}>
                   <h3 className="font-bold text-gray-800 text-lg mb-3 pl-2 border-l-4 border-orange-500">{cat}</h3>
