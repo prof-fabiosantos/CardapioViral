@@ -18,8 +18,8 @@ const getAiInstance = () => {
 
 // Modelos
 const TEXT_MODEL_NAME = "gemini-3-flash-preview"; 
-// UPGRADE: Trocando para o modelo PRO de imagem para evitar bloqueios e melhorar qualidade
-const IMAGE_MODEL_NAME = "gemini-3-pro-image-preview";
+// REVERT: Voltando para Flash Image pois o Pro tem limites de cota muito baixos (Erro 429)
+const IMAGE_MODEL_NAME = "gemini-2.5-flash-image";
 
 // Schema for structured output
 const contentSchema: Schema = {
@@ -85,26 +85,26 @@ const generateImageForContent = async (item: any, profile: BusinessProfile): Pro
     // Limpeza agressiva do prompt
     const cleanSuggestion = sanitizeImagePrompt(item.suggestion);
 
-    // Prompt Otimizado para Gemini 3 Pro Image
+    // Prompt Otimizado para Gemini 2.5 Flash Image (Estilo 3D/Toy para evitar bloqueios de segurança)
     const imagePrompt = `
       Create a cute, high-quality 3D Marketing Illustration (Pixar style) for a food business named "${profile.name}".
       Subject: ${cleanSuggestion}.
       Style: 3D Render, isometric, vibrant colors, soft studio lighting, clean solid color background.
-      Quality: Masterpiece, trending on artstation.
-      Restrictions: NO TEXT, NO TRADEMARKS, NO REALISTIC PHOTOS.
+      Quality: High resolution, smooth texture.
+      Restrictions: NO TEXT, NO TRADEMARKS, NO REALISTIC PHOTOS, NO LOGOS.
     `;
 
-    console.log(`[Gerando Ilustração PRO] Prompt: ${cleanSuggestion}`);
+    console.log(`[Gerando Ilustração Flash] Prompt: ${cleanSuggestion}`);
 
     const response = await ai.models.generateContent({
-      model: IMAGE_MODEL_NAME, // Usando gemini-3-pro-image-preview
+      model: IMAGE_MODEL_NAME, // Voltando para gemini-2.5-flash-image
       contents: {
         parts: [{ text: imagePrompt }],
       },
       config: {
         imageConfig: {
           aspectRatio: aspectRatio,
-          imageSize: "1K" // Recurso exclusivo do modelo Pro
+          // imageSize removido pois não é suportado no Flash
         }
       },
     });
@@ -122,6 +122,7 @@ const generateImageForContent = async (item: any, profile: BusinessProfile): Pro
     if (error.message?.includes('Safety') || error.message?.includes('Blocked')) {
        console.warn("IMAGEM BLOQUEADA: O modelo detectou conteúdo sensível ou marca registrada.");
     }
+    // Não relança o erro para não quebrar o fluxo, retorna undefined (sem imagem)
     return undefined;
   }
 };
@@ -207,8 +208,11 @@ export const generateMarketingContent = async (
        };
 
        if (item.suggestion && item.type !== 'REPLY') {
-          // Delay de 2s mantido para segurança
-          await new Promise(r => setTimeout(r, 2000)); 
+          // AUMENTO DO DELAY: De 2000ms para 5000ms
+          // Motivo: O Free Tier do Gemini tem limite de ~15 RPM (1 req a cada 4s).
+          // Se gerarmos muito rápido, recebemos erro 429.
+          console.log("Aguardando 5s para respeitar limite de cota da API...");
+          await new Promise(r => setTimeout(r, 5000)); 
           
           const imageBase64 = await generateImageForContent(item, profile);
           if (imageBase64) {
@@ -224,7 +228,7 @@ export const generateMarketingContent = async (
   } catch (error: any) {
     console.error("Gemini Error:", error);
     if (error.status === 429 || error.message?.includes('429')) {
-        throw new Error("Muitas solicitações. Aguarde um momento.");
+        throw new Error("Muitas solicitações. O sistema está aguardando recarga de cota. Tente novamente em 1 minuto.");
     }
     throw error;
   }
