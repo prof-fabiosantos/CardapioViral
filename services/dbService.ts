@@ -21,6 +21,11 @@ export const dbService = {
     });
 
     if (error) {
+      // Se a tabela não existir, apenas avisa e segue a vida
+      if (error.code === '42P01') { 
+         console.warn("⚠️ Tabela 'generated_contents' não existe no Supabase. O histórico não será salvo.");
+         return; 
+      }
       console.error('Erro ao salvar conteúdo:', error);
       throw error;
     }
@@ -42,6 +47,7 @@ export const dbService = {
       .gte('created_at', startOfMonth.toISOString());
 
     if (error) {
+      if (error.code === '42P01') return 0; // Fail silent se tabela nao existe
       console.error('Erro ao contar gerações:', error);
       return 0;
     }
@@ -61,6 +67,7 @@ export const dbService = {
       .limit(limit);
 
     if (error) {
+      if (error.code === '42P01') return []; // Fail silent
       console.error('Erro ao buscar histórico:', error);
       return [];
     }
@@ -95,12 +102,14 @@ export const dbService = {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     // Buscar Visitas
-    const { count: visits } = await supabase
+    const { count: visits, error: vError } = await supabase
       .from('analytics_events')
       .select('*', { count: 'exact', head: true })
       .eq('profile_id', profileId)
       .eq('event_type', 'VIEW')
       .gte('created_at', sevenDaysAgo.toISOString());
+    
+    if (vError && vError.code === '42P01') return { visits: 0, clicks: 0 };
 
     // Buscar Cliques
     const { count: clicks } = await supabase
