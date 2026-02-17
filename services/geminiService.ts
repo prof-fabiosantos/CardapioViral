@@ -32,7 +32,7 @@ const contentSchema: Schema = {
       cta: { type: Type.STRING, description: "Chamada para ação (Ex: Peça no Link da Bio)" },
       hashtags: { type: Type.ARRAY, items: { type: Type.STRING } },
       script: { type: Type.STRING, description: "Roteiro visual apenas para Reels" },
-      suggestion: { type: Type.STRING, description: "Descrição visual EXTREMAMENTE DETALHADA para criar uma imagem publicitária de comida (inclua iluminação, cores, empratamento)" },
+      suggestion: { type: Type.STRING, description: "Descrição visual EXTREMAMENTE DETALHADA para criar uma imagem. IMPORTANTE: NÃO USE NOMES DE MARCAS (Ex: use 'refrigerante' em vez de 'Coca-Cola', 'ketchup' em vez de 'Heinz')." },
     },
     required: ["type", "caption", "cta", "hashtags"],
   }
@@ -49,12 +49,22 @@ const generateImageForContent = async (item: any, profile: BusinessProfile): Pro
     const aspectRatio = item.type === 'STORY' || item.type === 'REELS' ? '9:16' : '1:1';
 
     // Melhorar o prompt para o modelo de imagem
+    // Forçamos a remoção de termos de marca comuns caso a IA de texto tenha falhado nisso
+    const cleanSuggestion = item.suggestion
+      .replace(/Coca-Cola|Coca Cola|Coke/gi, "dark soda glass bottle")
+      .replace(/Pepsi/gi, "soda")
+      .replace(/Nutella/gi, "chocolate hazelnut cream")
+      .replace(/Heineken/gi, "green beer bottle")
+      .replace(/McDonald's|McDonalds/gi, "fast food burger");
+
     const imagePrompt = `
       Professional food photography advertisement for ${profile.name} (${profile.category}).
-      Subject: ${item.suggestion}.
-      Style: High quality, appetizing, studio lighting, 4k resolution, cinematic composition.
-      No text overlays inside the image.
+      Subject: ${cleanSuggestion}.
+      Style: High quality, appetizing, studio lighting, 4k resolution, cinematic composition, delicious.
+      No text overlays inside the image. No brand logos.
     `;
+
+    console.log(`Gerando imagem para ${item.type}...`);
 
     const response = await ai.models.generateContent({
       model: IMAGE_MODEL_NAME,
@@ -77,8 +87,12 @@ const generateImageForContent = async (item: any, profile: BusinessProfile): Pro
     }
     return undefined;
 
-  } catch (error) {
+  } catch (error: any) {
     console.warn(`Erro ao gerar imagem para ${item.type}:`, error);
+    // Se o erro for de segurança, logamos especificamente
+    if (error.message?.includes('Safety') || error.message?.includes('Blocked')) {
+       console.warn("Imagem bloqueada por filtros de segurança (provavelmente marca registrada).");
+    }
     return undefined; // Retorna sem imagem se falhar, não quebra o fluxo
   }
 };
@@ -124,6 +138,7 @@ export const generateMarketingContent = async (
     Item 2 (WHATSAPP): Mensagem para Lista de Transmissão. Começa com saudação, oferta clara, link de pedido.
     Item 3 (STORY): Este item servirá de base para a ARTE visual. 
          - No campo 'suggestion', descreva como deve ser o design da imagem (ex: "Close-up ultra realista do Burguer X com queijo derretendo, fundo desfocado escuro").
+         - IMPORTANTE: NÃO CITE MARCAS FAMOSAS (ex: Coca-Cola) na suggestion. Use genéricos (ex: refrigerante, cola).
          - No campo 'hook', coloque o TÍTULO PRINCIPAL da arte (Ex: "SÓ HOJE!").
          - No campo 'caption', coloque o SUBTÍTULO ou PREÇO da arte.
     
@@ -157,11 +172,12 @@ export const generateMarketingContent = async (
     if (!text) return [];
 
     const rawData = JSON.parse(text);
+    const resultContents: GeneratedContent[] = [];
     
-    // 2. Processa as imagens em paralelo para cada item gerado
-    const contentsWithImages = await Promise.all(rawData.map(async (item: any) => {
-       // Adiciona ID e Timestamp base
-       const baseItem = {
+    // 2. Processa as imagens SEQUENCIALMENTE para evitar Rate Limit e Bloqueios
+    // Usar 'for...of' em vez de Promise.all
+    for (const item of rawData) {
+       const baseItem: GeneratedContent = {
          ...item,
          id: Math.random().toString(36).substr(2, 9),
          createdAt: Date.now(),
@@ -170,16 +186,19 @@ export const generateMarketingContent = async (
 
        // Gera imagem se tiver sugestão (exceto para respostas de texto puro)
        if (item.suggestion && item.type !== 'REPLY') {
+          // Pequeno delay artificial para aliviar a API se houver muitos itens
+          await new Promise(r => setTimeout(r, 500)); 
+          
           const imageBase64 = await generateImageForContent(item, profile);
           if (imageBase64) {
             baseItem.generatedImage = imageBase64;
           }
        }
 
-       return baseItem;
-    }));
+       resultContents.push(baseItem);
+    }
 
-    return contentsWithImages;
+    return resultContents;
 
   } catch (error: any) {
     console.error("Gemini Error:", error);
