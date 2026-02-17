@@ -1137,7 +1137,7 @@ const MenuPublicView = ({ profile, products }: { profile: BusinessProfile | null
 
 // 2. Updated App Component to handle new Routing
 const App = () => {
-  const [view, setView] = useState<AppView>(AppView.MAIN_HUB); // Default to MAIN_HUB
+  const [view, setView] = useState<AppView>(AppView.MAIN_HUB); 
   const [session, setSession] = useState<any>(null);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -1148,136 +1148,12 @@ const App = () => {
   
   const [loading, setLoading] = useState(true);
 
-  // Hash Routing
-  useEffect(() => {
-    const handleHashChange = async () => {
-      const hash = window.location.hash;
-      
-      // FIX: Ignore Supabase Auth redirects (Magic Links)
-      if (hash.includes('access_token=') || hash.includes('type=recovery') || hash.includes('error=')) {
-         setLoading(true);
-         return; 
-      }
+  // --- Core Functions defined via refs/stable callbacks to avoid closure staleness ---
 
-      setLoading(true);
-
-      try {
-        if (hash.startsWith('#/m/')) {
-            const slug = hash.replace('#/m/', '').split('?')[0];
-            const { data: publicProfile, error: profileError } = await supabase.from('profiles').select('*').eq('slug', slug).single();
-
-            if (profileError) throw profileError;
-
-            if (publicProfile) {
-              const { data: publicProducts } = await supabase.from('products').select('*').eq('user_id', publicProfile.user_id);
-              setProfile(publicProfile as BusinessProfile);
-              setProducts(publicProducts as Product[] || []);
-              setView(AppView.MENU_PREVIEW);
-            } else {
-              setProfile(null);
-              setView(AppView.MENU_PREVIEW); // Will show "Store not found"
-            }
-        } else if (hash === '#/discovery') {
-            setView(AppView.DISCOVERY);
-        } else {
-            // Root path or unknown hash.
-            // If we are coming back from a menu, we MUST clear the public profile data
-            // to prevent the app from getting confused.
-            if (view === AppView.MENU_PREVIEW) {
-                setProfile(null);
-                setProducts([]);
-            }
-            
-            // Re-check auth to determine if we go to Dashboard or Main Hub
-            await checkAuth();
-        }
-      } catch (err) {
-        console.error("Routing error:", err);
-        // Fallback to Hub in case of crash
-        if (!session) setView(AppView.MAIN_HUB);
-      } finally {
-        // Only stop loading if we are NOT in the middle of a checkAuth call (which handles its own loading)
-        // actually checkAuth sets loading(false) at the end, so we might need to be careful not to double toggle.
-        // Simplest approach: if we just loaded a public view, we are done.
-        if (window.location.hash.startsWith('#/m/') || window.location.hash === '#/discovery') {
-            setLoading(false);
-        }
-      }
-    };
-
-    if (window.location.hash.startsWith('#/m/') || window.location.hash === '#/discovery') {
-       handleHashChange();
-    } else {
-       checkAuth();
-    }
-    
-    // Safety Timeout: Force stop loading after 8s to prevent infinite spinner
-    const safetyTimeout = setTimeout(() => {
-        setLoading((prev) => {
-            if (prev) {
-                console.warn("Safety timeout triggered. Forcing loading stop.");
-                return false;
-            }
-            return false;
-        });
-    }, 8000);
-
-    window.addEventListener('hashchange', handleHashChange);
-    return () => {
-        window.removeEventListener('hashchange', handleHashChange);
-        clearTimeout(safetyTimeout);
-    };
-  }, []); // Empty dependency array to prevent loops
-
-  const checkAuth = async () => {
-    setLoading(true);
-    
-    try {
-        // Check current session
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        setSession(currentSession);
-        
-        if (currentSession) {
-          await fetchUserData(currentSession.user.id);
-        } else {
-          const hash = window.location.hash;
-          // Only force MAIN_HUB if we are NOT in a specific route
-          if (!hash.includes('access_token=') && !hash.startsWith('#/m/') && hash !== '#/discovery') {
-              setView(AppView.MAIN_HUB);
-          }
-        }
-    } catch (err) {
-        console.error("Auth check failed", err);
-    } finally {
-        // Always stop loading after an explicit auth check finishes
-        setLoading(false);
-    }
-
-    // Subscribe to changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      
-      if (session) {
-        if (!profile || profile.user_id !== session.user.id) {
-           await fetchUserData(session.user.id);
-        }
-      } else {
-        // Logged out
-        if (!window.location.hash.startsWith('#/m/') && window.location.hash !== '#/discovery') {
-           setProfile(null);
-           setProducts([]);
-           setView(AppView.MAIN_HUB);
-           setLoading(false);
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  };
-
+  // Fetches private user data
   const fetchUserData = async (userId: string) => {
-    setLoading(true);
     try {
+      setLoading(true);
       const { data: profileData } = await supabase.from('profiles').select('*').eq('user_id', userId).single();
       
       if (profileData) {
@@ -1295,8 +1171,9 @@ const App = () => {
            setAnalyticsStats(stats);
         }
 
-        // Only redirect to dashboard if we are in a neutral state
-        if (view === AppView.LANDING || view === AppView.AUTH || view === AppView.MAIN_HUB || view === AppView.ONBOARDING || view === AppView.MENU_PREVIEW) {
+        // Only redirect to dashboard if we are currently at root or in a login flow
+        const hash = window.location.hash;
+        if (!hash || hash === '#/' || hash.includes('access_token')) {
             setView(AppView.DASHBOARD);
         }
       } else {
@@ -1307,6 +1184,101 @@ const App = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // --- Initialization & Auth Listener (Run ONCE) ---
+  useEffect(() => {
+    // 1. Setup Auth Listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      if (session?.user) {
+         // Only fetch data if we are NOT in a public view (to avoid overwriting public profile with private profile)
+         const hash = window.location.hash;
+         if (!hash.startsWith('#/m/') && hash !== '#/discovery') {
+             fetchUserData(session.user.id);
+         }
+      } else {
+         // Logged out
+         const hash = window.location.hash;
+         if (!hash.startsWith('#/m/') && hash !== '#/discovery') {
+             setProfile(null);
+             setProducts([]);
+             setView(AppView.MAIN_HUB);
+         }
+      }
+    });
+
+    // 2. Initial Route Check
+    handleRoute();
+
+    // 3. Hash Change Listener
+    const onHashChange = () => handleRoute();
+    window.addEventListener('hashchange', onHashChange);
+
+    // Safety Timeout
+    const safetyTimeout = setTimeout(() => setLoading(false), 8000);
+
+    return () => {
+       subscription.unsubscribe();
+       window.removeEventListener('hashchange', onHashChange);
+       clearTimeout(safetyTimeout);
+    };
+  }, []);
+
+  // --- Router Logic ---
+  const handleRoute = async () => {
+      const hash = window.location.hash;
+      
+      // FIX: Ignore Supabase Auth redirects during processing
+      if (hash.includes('access_token=') || hash.includes('type=recovery') || hash.includes('error=')) {
+         setLoading(true);
+         return; 
+      }
+
+      setLoading(true);
+
+      try {
+        if (hash.startsWith('#/m/')) {
+            // PUBLIC MENU VIEW
+            const slug = hash.replace('#/m/', '').split('?')[0];
+            const { data: publicProfile, error: profileError } = await supabase.from('profiles').select('*').eq('slug', slug).single();
+
+            if (profileError) throw profileError;
+
+            if (publicProfile) {
+              const { data: publicProducts } = await supabase.from('products').select('*').eq('user_id', publicProfile.user_id);
+              setProfile(publicProfile as BusinessProfile);
+              setProducts(publicProducts as Product[] || []);
+              setView(AppView.MENU_PREVIEW);
+            } else {
+              setProfile(null);
+              setView(AppView.MENU_PREVIEW); // Will show "Store not found"
+            }
+        } else if (hash === '#/discovery') {
+            // DISCOVERY VIEW
+            setView(AppView.DISCOVERY);
+        } else {
+            // ROOT / DASHBOARD VIEW
+            // Important: If we were viewing a public profile, clear it first!
+            if (view === AppView.MENU_PREVIEW) {
+                setProfile(null);
+                setProducts([]);
+            }
+
+            // Check if user is logged in
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                await fetchUserData(session.user.id);
+            } else {
+                setView(AppView.MAIN_HUB);
+            }
+        }
+      } catch (err) {
+        console.error("Routing error:", err);
+        if (!session) setView(AppView.MAIN_HUB);
+      } finally {
+        setLoading(false);
+      }
   };
 
   const refreshStats = async () => {
@@ -1370,7 +1342,6 @@ const App = () => {
         );
 
       case AppView.PRODUCTS:
-         // Simplified wrapper passing props
         if (!profile) return null;
         return <ProductsManager products={products} profile={profile} onAdd={(p) => setProducts([...products, p])} onDelete={(id) => setProducts(products.filter(p => p.id !== id))} onUpgrade={() => setView(AppView.BILLING)} />;
 
@@ -1395,7 +1366,6 @@ const App = () => {
           return <AuthScreen onAuthSuccess={() => {}} />;
 
       default:
-        // Caso de fallback, mas idealmente não deve cair aqui se a lógica do MAIN_HUB estiver correta
         return <Landing 
           onStart={() => setView(AppView.AUTH)} 
           onLogin={() => setView(AppView.AUTH)} 
