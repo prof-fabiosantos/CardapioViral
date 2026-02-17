@@ -666,8 +666,11 @@ const ProductsManager = ({ products, onAdd, onDelete, profile, onUpgrade }: {
           .upload(fileName, imageFile);
 
         if (uploadError) {
-          // Se o bucket não existir, vai dar erro aqui.
-          throw new Error(`Erro no upload: ${uploadError.message}. Verifique se o bucket 'product-images' existe no Supabase.`);
+           if (uploadError.message.includes('row-level security')) {
+             throw new Error("Erro de Permissão no Supabase: Você precisa criar uma 'Policy' no Storage para permitir uploads (INSERT) para usuários autenticados.");
+           }
+           // Se o bucket não existir, vai dar erro aqui.
+           throw new Error(`Erro no upload: ${uploadError.message}. Verifique se o bucket 'product-images' existe no Supabase.`);
         }
 
         const { data: { publicUrl } } = supabase.storage
