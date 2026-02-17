@@ -4,11 +4,19 @@ import { SYSTEM_INSTRUCTION, getCategoryPrompt } from "../constants";
 
 declare const process: any;
 
-// Initialize Gemini Client using process.env.API_KEY
-// The API key must be obtained exclusively from the environment variable process.env.API_KEY
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Helper to get Gemini Instance lazily
+const getAiInstance = () => {
+    // process.env.API_KEY is replaced by Vite at build time. 
+    // If empty/undefined, we handle it here.
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+        console.error("API_KEY is missing. Please configure it in your environment variables.");
+        throw new Error("API Key não configurada");
+    }
+    return new GoogleGenAI({ apiKey });
+};
 
-const MODEL_NAME = "gemini-3-flash-preview"; 
+const MODEL_NAME = "gemini-2.0-flash"; // Using a stable model name that exists in standard tier
 
 // Schema for structured output
 const contentSchema: Schema = {
@@ -35,8 +43,6 @@ export const generateMarketingContent = async (
   customContext?: string
 ): Promise<GeneratedContent[]> => {
   
-  // process.env.API_KEY is assumed to be pre-configured and valid.
-
   const productListStr = products
     .map(p => `- ${p.name} (${p.category}): R$ ${p.price.toFixed(2)} - ${p.description}`)
     .join('\n');
@@ -86,6 +92,8 @@ export const generateMarketingContent = async (
   }
 
   try {
+    const ai = getAiInstance(); // Get instance here to avoid load-time crash
+    
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: prompt,
@@ -93,7 +101,7 @@ export const generateMarketingContent = async (
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
         responseSchema: contentSchema,
-        temperature: 0.7, // Lower temperature for more accurate pricing/facts
+        temperature: 0.7, 
       },
     });
 
@@ -112,6 +120,6 @@ export const generateMarketingContent = async (
 
   } catch (error) {
     console.error("Gemini Error:", error);
-    throw new Error("Falha ao gerar conteúdo com IA.");
+    throw error; // Re-throw to be handled by UI
   }
 };

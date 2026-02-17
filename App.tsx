@@ -1,15 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { createRoot } from 'react-dom/client';
-import { AppView, BusinessProfile, Product, GeneratedContent, BusinessCategory, ToneOfVoice, PlanTier, Subscription } from './types';
+import React, { useState, useEffect } from 'react';
+import { AppView, BusinessProfile, Product, GeneratedContent, BusinessCategory, ToneOfVoice, PlanTier } from './types';
 import { MOCK_PRODUCTS, PLAN_CONFIG, STRIPE_PUBLIC_KEY } from './constants';
 import { generateMarketingContent } from './services/geminiService';
 
 // Icons
 import { 
   ChefHat, LayoutDashboard, Utensils, Sparkles, LogOut, 
-  Menu as MenuIcon, User, Copy, Download, Share2, 
+  Menu as MenuIcon, User, Copy, Share2, 
   Trash2, Plus, MessageCircle, Instagram, ExternalLink,
-  Smartphone, Zap, ArrowRight, RefreshCw, CheckCircle, Lock, AlertTriangle
+  Smartphone, Zap, ArrowRight, CheckCircle, Lock, AlertTriangle
 } from 'lucide-react';
 
 // Declare Stripe on window since we loaded it via script tag
@@ -532,7 +531,8 @@ const ContentGenerator = ({
       setGenerated(results);
       onGenerated(results);
     } catch (e) {
-      alert("Erro ao gerar conteúdo. Verifique sua chave de API ou tente novamente.");
+      alert("Erro ao gerar conteúdo. Verifique se sua API Key está configurada corretamente.");
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -744,55 +744,74 @@ const ContentGenerator = ({
 };
 
 const MenuPublicView = ({ profile, products }: { profile: BusinessProfile, products: Product[] }) => {
-  // Simple grouping
+  // Group products by category
   const categories = Array.from(new Set(products.map(p => p.category)));
-  const phoneClean = profile.phone.replace(/\D/g, '');
-
-  const sendOrder = (product: Product) => {
-    const text = `Olá! Vi no Cardápio Viral e quero pedir: ${product.name} (R$ ${product.price.toFixed(2)})`;
-    window.open(`https://wa.me/${phoneClean}?text=${encodeURIComponent(text)}`, '_blank');
-  };
-
-  const sendGeneralMsg = () => {
-     const text = `Olá! Vi o cardápio e gostaria de fazer um pedido.`;
-     window.open(`https://wa.me/${phoneClean}?text=${encodeURIComponent(text)}`, '_blank');
-  };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 max-w-md mx-auto shadow-2xl overflow-hidden bg-white relative">
-      <div className="bg-orange-600 h-32 relative">
-         <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2">
-            <div className="w-24 h-24 bg-white rounded-full p-1 shadow-md">
-               <div className="w-full h-full bg-orange-100 rounded-full flex items-center justify-center text-orange-600">
-                 <ChefHat size={40} />
-               </div>
-            </div>
-         </div>
-      </div>
-      <div className="pt-12 pb-6 text-center px-4">
-        <h1 className="text-2xl font-bold text-gray-900">{profile.name}</h1>
-        <p className="text-gray-500 text-sm mt-1">{profile.category} • {profile.city}</p>
+    <div className="min-h-screen bg-gray-50 pb-8">
+      {/* Header */}
+      <div className="bg-white shadow-sm pb-4">
+        <div className="h-32 bg-gradient-to-r from-orange-400 to-red-500"></div>
+        <div className="px-4 -mt-10 flex items-end justify-between">
+          <div className="bg-white p-2 rounded-xl shadow-lg">
+             <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center text-orange-600">
+               <ChefHat size={40} />
+             </div>
+          </div>
+          <div className="mb-2 text-right">
+             <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+               profile.subscription?.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+             }`}>
+               Aberto Agora
+             </span>
+          </div>
+        </div>
+        <div className="px-4 mt-2">
+           <h1 className="text-2xl font-bold text-gray-900">{profile.name}</h1>
+           <p className="text-gray-500 text-sm">{profile.category} • {profile.city}</p>
+           
+           <div className="flex gap-2 mt-4">
+              <a 
+                href={`https://wa.me/55${profile.phone.replace(/\D/g, '')}`} 
+                target="_blank" 
+                rel="noreferrer"
+                className="flex-1 bg-green-500 text-white py-2 rounded-lg font-bold flex items-center justify-center gap-2"
+              >
+                <MessageCircle size={18} /> Pedir no Zap
+              </a>
+              <button 
+                onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    alert('Link copiado!');
+                }}
+                className="p-2 border rounded-lg text-gray-600"
+              >
+                <Share2 size={20} />
+              </button>
+           </div>
+        </div>
       </div>
 
-      <div className="px-4 space-y-8">
+      {/* Menu Categories */}
+      <div className="px-4 mt-6 space-y-8">
         {categories.map(cat => (
           <div key={cat}>
-            <h3 className="font-bold text-lg text-gray-800 mb-3 border-b pb-1 border-gray-100">{cat}</h3>
-            <div className="space-y-4">
+            <h2 className="text-lg font-bold text-gray-800 mb-3 border-l-4 border-orange-500 pl-3">{cat}</h2>
+            <div className="grid gap-4">
               {products.filter(p => p.category === cat).map(product => (
-                <div key={product.id} className="flex justify-between items-center group">
-                  <div className="flex-1 pr-2">
-                    <h4 className="font-medium text-gray-900">{product.name}</h4>
-                    <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">{product.description}</p>
-                    <div className="font-bold text-orange-600 mt-1">R$ {product.price.toFixed(2)}</div>
+                <div key={product.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex justify-between">
+                  <div>
+                    <h3 className="font-bold text-gray-900">{product.name}</h3>
+                    <p className="text-sm text-gray-500 line-clamp-2 mt-1">{product.description}</p>
+                    <div className="font-bold text-green-700 mt-2">R$ {product.price.toFixed(2)}</div>
                   </div>
-                  <button 
-                    onClick={() => sendOrder(product)}
-                    className="bg-green-50 text-green-600 p-2 rounded-full hover:bg-green-100 transition-colors"
-                    title="Pedir no WhatsApp"
-                  >
-                    <Plus size={20} />
-                  </button>
+                  {product.isPopular && (
+                    <div className="ml-2">
+                      <span className="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-2 py-1 rounded uppercase">
+                        Top
+                      </span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -800,25 +819,13 @@ const MenuPublicView = ({ profile, products }: { profile: BusinessProfile, produ
         ))}
       </div>
       
-      <div className="text-center mt-10 text-gray-300 text-xs pb-4">
-        Cardápio via Cardápio Viral
-      </div>
-
-      {/* STICKY BOTTOM BAR */}
-      <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 p-4 shadow-lg z-50">
-        <button 
-          onClick={sendGeneralMsg}
-          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center gap-2"
-        >
-          <MessageCircle size={20} />
-          Fazer Pedido no WhatsApp
-        </button>
+      <div className="text-center text-gray-400 text-xs mt-8 pb-4">
+        Cardápio Digital por <span className="font-bold">ViralMenu</span>
       </div>
     </div>
   );
-}
+};
 
-// 3. Main App Container
 const App = () => {
   const [view, setView] = useState<AppView>(AppView.LANDING);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
@@ -1085,12 +1092,5 @@ const App = () => {
     </Layout>
   );
 };
-
-const root = createRoot(document.getElementById('root')!);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
 
 export default App;
