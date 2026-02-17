@@ -12,7 +12,8 @@ import {
   Trash2, Plus, MessageCircle, Instagram, ExternalLink,
   Smartphone, Zap, ArrowRight, CheckCircle, Lock, AlertTriangle,
   SearchX, Mail, Image as ImageIcon, MapPin, Phone,
-  QrCode, X, Download, Upload, Loader2, ChevronDown, ChevronUp, Star, Clock, DollarSign, RefreshCw
+  QrCode, X, Download, Upload, Loader2, ChevronDown, ChevronUp, Star, Clock, DollarSign, RefreshCw,
+  MoreHorizontal, Heart, Send
 } from 'lucide-react';
 
 // Declare Stripe on window since we loaded it via script tag
@@ -42,7 +43,7 @@ const Layout = ({
 
   const navItems = [
     { id: AppView.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
-    { id: AppView.GENERATOR, label: 'IA Viral', icon: Sparkles },
+    { id: AppView.GENERATOR, label: 'IA de Marketing', icon: Sparkles },
     { id: AppView.PRODUCTS, label: 'Cardápio/Produtos', icon: Utensils },
     { id: AppView.BILLING, label: 'Assinatura', icon: User },
   ];
@@ -1040,8 +1041,6 @@ const GeneratorView = ({
     try {
       const results = await generateMarketingContent(profile, products, selectedType, customContext);
       
-      // Save to DB and update state
-      // Note: We save items individually to DB
       for (const item of results) {
          if (profile.user_id) {
             await dbService.saveGeneratedContent(profile.user_id, item);
@@ -1051,7 +1050,6 @@ const GeneratorView = ({
       const newHistory = [...results, ...generated];
       setGenerated(newHistory);
       
-      // Trigger update on parent to refresh dashboard count
       if(results.length > 0) onSave(results[0]); 
 
     } catch (e: any) {
@@ -1068,12 +1066,10 @@ const GeneratorView = ({
           const imageBase64 = await generateSingleImage(item.suggestion, item.type, profile);
           const updatedItem = { ...item, generatedImage: imageBase64 };
           
-          // Update local state
           const newGenerated = [...generated];
           newGenerated[itemIndex] = updatedItem;
           setGenerated(newGenerated);
           
-          // Persist the image update to DB (Insert as new entry or update - for MVP we insert new to keep simple history)
           if(profile.user_id) {
              await dbService.saveGeneratedContent(profile.user_id, updatedItem);
           }
@@ -1085,17 +1081,124 @@ const GeneratorView = ({
       }
   };
 
+  const renderContentCard = (item: GeneratedContent, idx: number) => {
+    const isWhatsapp = item.type === 'WHATSAPP';
+    const isStory = item.type === 'STORY';
+    const isFeed = item.type === 'FEED' || item.type === 'REELS';
+
+    return (
+      <div key={idx} className={`bg-white rounded-xl shadow-sm border overflow-hidden animate-fade-in-up ${isWhatsapp ? 'border-green-100' : 'border-gray-100'}`} style={{animationDelay: `${idx * 0.1}s`}}>
+        {/* Card Header mimics the platform */}
+        <div className={`px-4 py-3 flex justify-between items-center border-b ${
+           isWhatsapp ? 'bg-[#008069] text-white' : 
+           isStory ? 'bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 text-white' :
+           'bg-white text-gray-900 border-gray-100'
+        }`}>
+           <div className="flex items-center gap-2">
+              {isWhatsapp && <MessageCircle size={20} />}
+              {isFeed && <Instagram size={20} />}
+              {isStory && <div className="w-5 h-5 rounded-full border-2 border-white"></div>}
+              <span className="font-bold text-sm uppercase tracking-wide opacity-90">{item.type}</span>
+           </div>
+           <button 
+             onClick={() => {
+                navigator.clipboard.writeText(`${item.hook}\n\n${item.caption}\n\n${item.hashtags.join(' ')}`);
+                alert('Copiado!');
+             }}
+             className={`p-2 rounded-full hover:bg-white/20 transition-colors ${isFeed ? 'hover:bg-gray-100 text-gray-500' : ''}`}
+             title="Copiar Texto"
+           >
+             <Copy size={18}/>
+           </button>
+        </div>
+
+        {/* Content Body */}
+        <div className={`p-0 ${isWhatsapp ? 'bg-[#e5ddd5]' : 'bg-white'}`}>
+           
+           {/* WhatsApp Bubble Container */}
+           <div className={`${isWhatsapp ? 'p-4' : ''}`}>
+              <div className={`${isWhatsapp ? 'bg-white p-3 rounded-tr-none rounded-xl shadow-sm max-w-[90%] ml-auto relative' : ''}`}>
+                 
+                 {/* Image Area */}
+                 {item.generatedImage ? (
+                    <div className="mb-3 relative group">
+                      <img 
+                        src={item.generatedImage} 
+                        alt="Conteúdo Gerado" 
+                        className={`w-full object-cover shadow-sm ${isStory ? 'aspect-[9/16]' : 'aspect-square'} rounded-lg`} 
+                      />
+                      <a 
+                         href={item.generatedImage} 
+                         download={`arte-${item.type}.png`}
+                         className="absolute bottom-2 right-2 bg-white text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50"
+                      >
+                         <Download size={16} />
+                      </a>
+                    </div>
+                 ) : (
+                    item.suggestion && (
+                       <div className={`mb-3 border border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center text-center bg-gray-50/50 ${isStory ? 'aspect-[9/16]' : 'aspect-video'}`}>
+                           <ImageIcon className="text-gray-300 mb-2" size={32} />
+                           <p className="text-xs text-gray-400 mb-3 max-w-[200px]">Visual sugerido: {item.suggestion.substring(0, 50)}...</p>
+                           <button 
+                             onClick={() => handleGenerateSingleImage(idx, item)}
+                             disabled={generatingImages[item.id || idx]}
+                             className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-full text-xs font-bold shadow-sm hover:shadow-md transition-all flex items-center gap-2"
+                           >
+                             {generatingImages[item.id || idx] ? <Loader2 className="animate-spin" size={14}/> : <Sparkles size={14} className="text-orange-500"/>}
+                             {generatingImages[item.id || idx] ? 'Criando...' : 'Gerar Imagem'}
+                           </button>
+                       </div>
+                    )
+                 )}
+
+                 {/* Text Area */}
+                 <div className={`${isWhatsapp ? '' : 'p-5'}`}>
+                    {item.hook && <h3 className="font-bold text-gray-900 text-lg mb-2 leading-tight">{item.hook}</h3>}
+                    <p className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed">{item.caption}</p>
+                    
+                    {item.hashtags.length > 0 && (
+                       <p className="text-blue-500 text-xs mt-3 font-medium">
+                          {item.hashtags.map(h => `#${h.replace('#','')}`).join(' ')}
+                       </p>
+                    )}
+
+                    {isWhatsapp && (
+                       <div className="flex justify-end items-center gap-1 mt-2 opacity-60">
+                          <span className="text-[10px] text-gray-500">12:00</span>
+                          <CheckCircle size={12} className="text-blue-500" />
+                       </div>
+                    )}
+                 </div>
+              </div>
+           </div>
+
+           {/* Actions Footer */}
+           {!isWhatsapp && (
+              <div className="px-5 pb-5 pt-0 flex gap-2">
+                 <button className="flex-1 border border-gray-200 rounded-lg py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                    Editar
+                 </button>
+                 <button className="flex-1 bg-gray-900 text-white rounded-lg py-2 text-sm font-bold hover:bg-black transition-colors flex justify-center items-center gap-2">
+                    <Share2 size={16}/> Publicar
+                 </button>
+              </div>
+           )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 animate-fade-in">
         <h2 className="text-xl font-bold mb-4 text-gray-900">IA de Marketing</h2>
         <div className="flex flex-wrap gap-2 mb-6">
-          <button onClick={() => setSelectedType('PACK_SEMANAL')} className={`px-4 py-2 rounded-lg border font-medium text-sm ${selectedType === 'PACK_SEMANAL' ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white'}`}>Pack Semanal</button>
-          <button onClick={() => setSelectedType('OFERTA_DIA')} className={`px-4 py-2 rounded-lg border font-medium text-sm ${selectedType === 'OFERTA_DIA' ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white'}`}>Oferta Relâmpago</button>
-          <button onClick={() => setSelectedType('RESPOSTA')} className={`px-4 py-2 rounded-lg border font-medium text-sm ${selectedType === 'RESPOSTA' ? 'bg-orange-50 border-orange-500 text-orange-700' : 'bg-white'}`}>Responder Cliente</button>
+          <button onClick={() => setSelectedType('PACK_SEMANAL')} className={`px-4 py-2 rounded-lg border font-medium text-sm transition-all ${selectedType === 'PACK_SEMANAL' ? 'bg-orange-600 text-white border-orange-600 shadow-md transform -translate-y-0.5' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>Pack Semanal</button>
+          <button onClick={() => setSelectedType('OFERTA_DIA')} className={`px-4 py-2 rounded-lg border font-medium text-sm transition-all ${selectedType === 'OFERTA_DIA' ? 'bg-orange-600 text-white border-orange-600 shadow-md transform -translate-y-0.5' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>Oferta Relâmpago</button>
+          <button onClick={() => setSelectedType('RESPOSTA')} className={`px-4 py-2 rounded-lg border font-medium text-sm transition-all ${selectedType === 'RESPOSTA' ? 'bg-orange-600 text-white border-orange-600 shadow-md transform -translate-y-0.5' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>Responder Cliente</button>
         </div>
         
-        {/* REINSERINDO O SELECT DE PRODUTOS PARA OFERTA DO DIA */}
         {selectedType === 'OFERTA_DIA' && (
            <div className="mb-4">
              <label className="block text-sm font-medium text-gray-700 mb-2">Produto em Destaque (Opcional)</label>
@@ -1111,48 +1214,23 @@ const GeneratorView = ({
         )}
 
         {selectedType === 'RESPOSTA' && (
-           <textarea className="w-full border p-3 rounded-lg mb-4" placeholder="Mensagem do cliente..." rows={3} value={customContext} onChange={e => setCustomContext(e.target.value)} />
+           <textarea className="w-full border p-3 rounded-lg mb-4 focus:ring-2 focus:ring-orange-500 outline-none" placeholder="Cole a mensagem do cliente aqui..." rows={3} value={customContext} onChange={e => setCustomContext(e.target.value)} />
         )}
-        <button onClick={handleGenerate} disabled={loading} className="bg-orange-600 text-white font-bold py-4 px-6 rounded-xl w-full flex items-center justify-center gap-3">
-          {loading ? <Loader2 className="animate-spin" /> : <Sparkles />} {loading ? 'Criando...' : 'Gerar Conteúdo'}
+        
+        <button onClick={handleGenerate} disabled={loading} className="bg-gradient-to-r from-orange-600 to-orange-500 text-white font-bold py-4 px-6 rounded-xl w-full flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:hover:transform-none">
+          {loading ? <Loader2 className="animate-spin" size={24} /> : <Sparkles size={24} />} {loading ? 'A IA está criando...' : 'Gerar Conteúdo'}
         </button>
       </div>
 
-      <div className="space-y-6">
-        {generated.map((item, idx) => (
-          <div key={idx} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-             {/* Content Display Logic (Same as before) */}
-             <div className="flex justify-between mb-4">
-                <span className="text-xs font-bold px-2 py-1 bg-gray-100 rounded">{item.type}</span>
-                <button onClick={() => navigator.clipboard.writeText(item.caption)} className="text-gray-400 hover:text-orange-600"><Copy size={16}/></button>
-             </div>
-             {item.generatedImage ? (
-                <img src={item.generatedImage} className="w-full rounded-lg mb-4" />
-             ) : (
-                item.suggestion && (
-                   <div className="bg-gray-50 p-4 rounded-lg mb-4 text-center">
-                      <button 
-                        onClick={() => handleGenerateSingleImage(idx, item)} 
-                        disabled={generatingImages[item.id || idx]}
-                        className="text-sm font-bold text-gray-700 flex items-center justify-center gap-2 mx-auto"
-                      >
-                         {generatingImages[item.id || idx] ? <Loader2 className="animate-spin" size={16}/> : <RefreshCw size={16}/>} Gerar Imagem
-                      </button>
-                   </div>
-                )
-             )}
-             <p className="whitespace-pre-wrap text-sm text-gray-700">{item.caption}</p>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {generated.map((item, idx) => renderContentCard(item, idx))}
       </div>
     </div>
   );
 };
 
 const BillingView = ({ profile }: { profile: BusinessProfile }) => {
-    // ... existing BillingView code ...
     const currentTier = profile.subscription?.tier || PlanTier.FREE;
-    // (Mantido igual)
     return (
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -1168,13 +1246,37 @@ const BillingView = ({ profile }: { profile: BusinessProfile }) => {
              </div>
          </div>
       </div>
-      {/* ... Plan Grid ... */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {Object.entries(PLAN_CONFIG).map(([key, plan]) => {
+           if (key === PlanTier.FREE) return null;
+           const isCurrent = currentTier === key;
+           return (
+             <div key={key} className={`bg-white p-6 rounded-xl shadow-sm border ${isCurrent ? 'border-orange-500 ring-1 ring-orange-500' : 'border-gray-200'} flex flex-col`}>
+                 <h3 className="font-bold text-lg">{plan.name}</h3>
+                 <div className="my-4">
+                    <span className="text-3xl font-bold">R$ {plan.price}</span>
+                    <span className="text-gray-500">/mês</span>
+                 </div>
+                 <ul className="space-y-2 mb-6 flex-1 text-sm text-gray-600">
+                    <li>✓ {plan.limits.products === 9999 ? 'Produtos Ilimitados' : `${plan.limits.products} Produtos`}</li>
+                    <li>✓ {plan.limits.generations === 9999 ? 'Gerações IA Ilimitadas' : `${plan.limits.generations} Gerações IA/mês`}</li>
+                    <li>✓ Suporte Prioritário</li>
+                 </ul>
+                 <button
+                    disabled={isCurrent}
+                    className={`w-full py-2 rounded-lg font-bold ${isCurrent ? 'bg-gray-100 text-gray-400' : 'bg-orange-600 text-white hover:bg-orange-700'}`}
+                 >
+                    {isCurrent ? 'Plano Atual' : 'Assinar'}
+                 </button>
+             </div>
+           );
+        })}
+      </div>
     </div>
     );
 };
 
 const MenuPublicView = ({ profile, products }: { profile: BusinessProfile | null, products: Product[] }) => {
-   // ... existing MenuPublicView code ...
    const hasTrackedView = useRef(false);
    useEffect(() => {
     if (profile?.id && !hasTrackedView.current) {
@@ -1202,17 +1304,17 @@ const MenuPublicView = ({ profile, products }: { profile: BusinessProfile | null
   return (
       <div className="min-h-screen bg-gray-50 pb-20 animate-fade-in">
         <div className="relative">
-          <div className="h-48 bg-gray-900">
+          <div className="h-48 bg-gradient-to-r from-orange-600 to-orange-500">
              {profile.banner_url && <img src={profile.banner_url} className="w-full h-full object-cover opacity-80" />}
           </div>
           <div className="max-w-3xl mx-auto px-4 -mt-16 relative z-10">
             <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-4">
-               {profile.logo_url && <img src={profile.logo_url} className="w-20 h-20 rounded-full border-4 border-white" />}
+               {profile.logo_url && <img src={profile.logo_url} className="w-20 h-20 rounded-full border-4 border-white object-cover" />}
                <div>
-                  <h1 className="text-xl font-bold">{profile.name}</h1>
-                  <p className="text-sm text-gray-500">{profile.city}</p>
+                  <h1 className="text-xl font-bold text-gray-900">{profile.name}</h1>
+                  <p className="text-sm text-gray-500 flex items-center gap-1"><MapPin size={14}/> {profile.city}</p>
                </div>
-               <button onClick={() => handleWhatsappClick()} className="ml-auto bg-green-500 text-white p-3 rounded-full shadow-lg">
+               <button onClick={() => handleWhatsappClick()} className="ml-auto bg-green-500 hover:bg-green-600 text-white p-3 rounded-full shadow-lg transition-transform hover:scale-105">
                   <MessageCircle />
                </button>
             </div>
@@ -1221,21 +1323,23 @@ const MenuPublicView = ({ profile, products }: { profile: BusinessProfile | null
         <div className="max-w-3xl mx-auto px-4 mt-6 space-y-8">
         {categories.map(cat => (
           <div key={cat}>
-            <h2 className="text-lg font-bold mb-4">{cat}</h2>
+            <h2 className="text-lg font-bold mb-4 text-gray-800 border-b pb-2 border-gray-200">{cat}</h2>
             <div className="grid gap-4">
               {products.filter(p => p.category === cat).map(product => (
-                <div key={product.id} className="bg-white p-4 rounded-xl shadow-sm flex gap-4">
-                  <div className="flex-1">
-                     <h3 className="font-bold">{product.name}</h3>
-                     <p className="text-sm text-gray-500 mb-2">{product.description}</p>
-                     <div className="flex justify-between items-center">
-                        <span className="font-bold text-green-700">R$ {product.price.toFixed(2)}</span>
-                        <button onClick={() => handleWhatsappClick(product.name)} className="text-orange-600 font-bold text-sm flex items-center gap-1">
+                <div key={product.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex gap-4">
+                  <div className="flex-1 flex flex-col justify-between">
+                     <div>
+                        <h3 className="font-bold text-gray-900 text-lg leading-tight">{product.name}</h3>
+                        <p className="text-sm text-gray-500 mb-2 line-clamp-2">{product.description}</p>
+                     </div>
+                     <div className="flex justify-between items-center mt-2">
+                        <span className="font-bold text-green-700 text-lg">R$ {product.price.toFixed(2)}</span>
+                        <button onClick={() => handleWhatsappClick(product.name)} className="text-orange-600 font-bold text-sm flex items-center gap-1 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-full transition-colors">
                            Adicionar <Plus size={16}/>
                         </button>
                      </div>
                   </div>
-                  {product.image_url && <img src={product.image_url} className="w-24 h-24 object-cover rounded-lg bg-gray-100" />}
+                  {product.image_url && <img src={product.image_url} className="w-28 h-28 object-cover rounded-lg bg-gray-100 shadow-sm" />}
                 </div>
               ))}
             </div>
