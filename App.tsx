@@ -405,7 +405,7 @@ const Landing = ({ onStart, onLogin }: { onStart: () => void, onLogin: () => voi
                </button>
                <ul className="space-y-3 text-sm text-gray-600">
                  <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> Multi-clientes</li>
-                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> Marca Branca (White Label)</li>
+                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> <strong>Marca Branca (White Label)</strong></li>
                  <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> Tudo do Plano Pro</li>
                </ul>
             </div>
@@ -1483,6 +1483,10 @@ const MenuPublicView = ({ profile, products }: { profile: BusinessProfile | null
   // Group products by category
   const categories = Array.from(new Set(products.map(p => p.category)));
 
+  // --- WHITE LABEL LOGIC ---
+  // Only show "Cardápio Digital por ViralMenu" if user is NOT on AGENCY plan
+  const showBranding = profile.subscription?.tier !== PlanTier.AGENCY;
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20 animate-fade-in">
       {/* Banner / Header Hero */}
@@ -1601,10 +1605,19 @@ const MenuPublicView = ({ profile, products }: { profile: BusinessProfile | null
         ))}
       </div>
       
-      <div className="text-center text-gray-400 text-xs mt-12 pb-4">
-        <p className="mb-2">Imagens meramente ilustrativas.</p>
-        Cardápio Digital por <span className="font-bold text-orange-400">ViralMenu</span>
-      </div>
+      {/* White Label Footer Logic */}
+      {showBranding && (
+        <div className="text-center text-gray-400 text-xs mt-12 pb-4">
+          <p className="mb-2">Imagens meramente ilustrativas.</p>
+          Cardápio Digital por <span className="font-bold text-orange-400">ViralMenu</span>
+        </div>
+      )}
+      
+      {!showBranding && (
+         <div className="text-center text-gray-300 text-[10px] mt-12 pb-4">
+            <p>Imagens meramente ilustrativas.</p>
+         </div>
+      )}
     </div>
   );
 };
