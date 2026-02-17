@@ -25,6 +25,7 @@ export interface Product {
   description: string;
   price: number;
   category: string;
+  image_url?: string; // URL da imagem do produto
   isPopular?: boolean;
 }
 
@@ -53,6 +54,8 @@ export interface BusinessProfile {
   instagram: string;
   address?: string;
   themeColor: string;
+  logo_url?: string; // URL do Logo
+  banner_url?: string; // URL do Banner de capa
   deliveryInfo?: string; 
   subscription?: Subscription;
 }

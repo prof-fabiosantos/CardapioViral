@@ -10,7 +10,7 @@ import {
   Menu as MenuIcon, User, Copy, Share2, 
   Trash2, Plus, MessageCircle, Instagram, ExternalLink,
   Smartphone, Zap, ArrowRight, CheckCircle, Lock, AlertTriangle,
-  SearchX, Mail
+  SearchX, Mail, Image as ImageIcon, MapPin, Phone
 } from 'lucide-react';
 
 // Declare Stripe on window since we loaded it via script tag
@@ -303,6 +303,8 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, items: Pr
         tone: profile.tone!,
         instagram: profile.instagram || '',
         themeColor: profile.themeColor || '#ea580c',
+        logo_url: profile.logo_url || '',
+        banner_url: profile.banner_url || '',
         subscription: {
           tier: PlanTier.FREE,
           status: 'trial',
@@ -321,6 +323,7 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, items: Pr
          description: p.description,
          price: p.price,
          category: p.category,
+         image_url: p.image_url,
          isPopular: p.isPopular || false
       }));
 
@@ -345,7 +348,7 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, items: Pr
       <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl p-8">
         <div className="flex justify-between items-center mb-8">
            <h2 className="text-2xl font-bold text-gray-900">
-             {step === 1 ? 'Sobre a Empresa' : step === 2 ? 'Personalidade' : 'Cadastro Rápido'}
+             {step === 1 ? 'Sobre a Empresa' : step === 2 ? 'Visual' : 'Personalidade'}
            </h2>
            <span className="text-sm font-semibold text-orange-600">Passo {step} de 3</span>
         </div>
@@ -404,6 +407,40 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, items: Pr
 
         {step === 2 && (
           <div className="space-y-4">
+             <div className="bg-orange-50 p-4 rounded-lg text-sm text-orange-800 mb-4">
+               Cole links de imagens (ex: Instagram, Imgur ou Google Drive público). Se deixar vazio, usaremos um padrão.
+             </div>
+             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">URL do Logo (Opcional)</label>
+              <input 
+                type="text" 
+                className="w-full border border-gray-300 rounded-lg p-3 outline-none"
+                placeholder="https://..."
+                value={profile.logo_url || ''}
+                onChange={e => setProfile({...profile, logo_url: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">URL da Capa/Banner (Opcional)</label>
+              <input 
+                type="text" 
+                className="w-full border border-gray-300 rounded-lg p-3 outline-none"
+                placeholder="https://..."
+                value={profile.banner_url || ''}
+                onChange={e => setProfile({...profile, banner_url: e.target.value})}
+              />
+            </div>
+            <button 
+              onClick={handleNext}
+              className="w-full bg-orange-600 text-white font-bold py-3 rounded-lg mt-4"
+            >
+              Próximo
+            </button>
+          </div>
+        )}
+
+        {step === 3 && (
+           <div className="space-y-4">
              <p className="text-gray-600 text-sm">Como sua marca fala com os clientes?</p>
              <div className="grid grid-cols-1 gap-3">
                {Object.values(ToneOfVoice).map((tone) => (
@@ -420,28 +457,10 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, items: Pr
              </div>
              <button 
               disabled={!profile.tone}
-              onClick={handleNext}
-              className="w-full bg-orange-600 text-white font-bold py-3 rounded-lg mt-4 disabled:opacity-50"
-            >
-              Próximo
-            </button>
-          </div>
-        )}
-
-        {step === 3 && (
-           <div className="space-y-4 text-center">
-             <div className="bg-green-50 p-6 rounded-xl mb-4">
-               <h3 className="font-semibold text-green-800 mb-2">Tudo pronto!</h3>
-               <p className="text-green-700 text-sm">
-                 Vamos salvar seus dados e criar seu cardápio online.
-               </p>
-             </div>
-             <button 
               onClick={handleSubmit}
-              disabled={loading}
-              className="w-full bg-gray-900 text-white font-bold py-4 rounded-lg shadow-lg hover:bg-black flex justify-center items-center gap-2"
+              className="w-full bg-gray-900 text-white font-bold py-4 rounded-lg mt-4 flex justify-center items-center gap-2"
             >
-              {loading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : 'Acessar Painel'}
+              {loading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : 'Finalizar e Criar Cardápio'}
             </button>
            </div>
         )}
@@ -578,7 +597,8 @@ const ProductsManager = ({ products, onAdd, onDelete, profile, onUpgrade }: {
         name: newProduct.name,
         price: Number(newProduct.price),
         description: newProduct.description || '',
-        category: newProduct.category || 'Geral'
+        category: newProduct.category || 'Geral',
+        image_url: newProduct.image_url
       }).select().single();
 
       if (error) {
@@ -625,7 +645,8 @@ const ProductsManager = ({ products, onAdd, onDelete, profile, onUpgrade }: {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <input placeholder="Nome do Produto" className="border p-2 rounded" value={newProduct.name || ''} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
             <input type="number" placeholder="Preço (R$)" className="border p-2 rounded" value={newProduct.price || ''} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})} />
-            <input placeholder="Descrição" className="border p-2 rounded md:col-span-2" value={newProduct.description || ''} onChange={e => setNewProduct({...newProduct, description: e.target.value})} />
+            <input placeholder="Descrição (ingredientes)" className="border p-2 rounded md:col-span-2" value={newProduct.description || ''} onChange={e => setNewProduct({...newProduct, description: e.target.value})} />
+            <input placeholder="URL da Imagem (https://...)" className="border p-2 rounded md:col-span-2" value={newProduct.image_url || ''} onChange={e => setNewProduct({...newProduct, image_url: e.target.value})} />
           </div>
           <div className="flex justify-end gap-2">
             <button onClick={() => setIsAdding(false)} className="text-gray-500 px-4 py-2">Cancelar</button>
@@ -638,6 +659,7 @@ const ProductsManager = ({ products, onAdd, onDelete, profile, onUpgrade }: {
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 text-xs uppercase">
             <tr>
+              <th className="p-4 font-medium">Imagem</th>
               <th className="p-4 font-medium">Produto</th>
               <th className="p-4 font-medium">Categoria</th>
               <th className="p-4 font-medium">Preço</th>
@@ -647,6 +669,15 @@ const ProductsManager = ({ products, onAdd, onDelete, profile, onUpgrade }: {
           <tbody className="divide-y divide-gray-100">
             {products.map(p => (
               <tr key={p.id} className="hover:bg-gray-50">
+                <td className="p-4">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="w-12 h-12 object-cover rounded-lg bg-gray-100" />
+                  ) : (
+                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-300">
+                      <ImageIcon size={20} />
+                    </div>
+                  )}
+                </td>
                 <td className="p-4">
                   <div className="font-medium text-gray-900">{p.name}</div>
                   <div className="text-xs text-gray-500 truncate max-w-xs">{p.description}</div>
@@ -665,6 +696,7 @@ const ProductsManager = ({ products, onAdd, onDelete, profile, onUpgrade }: {
   );
 };
 
+// ... ContentGenerator remains the same ...
 const ContentGenerator = ({ 
   profile, 
   products, 
@@ -969,69 +1001,115 @@ const MenuPublicView = ({ profile, products }: { profile: BusinessProfile | null
   const categories = Array.from(new Set(products.map(p => p.category)));
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-8 animate-fade-in">
-      {/* Header */}
-      <div className="bg-white shadow-sm pb-4">
-        <div className="h-32 bg-gradient-to-r from-orange-400 to-red-500"></div>
-        <div className="px-4 -mt-10 flex items-end justify-between">
-          <div className="bg-white p-2 rounded-xl shadow-lg">
-             <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center text-orange-600">
-               <ChefHat size={40} />
+    <div className="min-h-screen bg-gray-50 pb-20 animate-fade-in">
+      {/* Banner / Header Hero */}
+      <div className="relative">
+        <div className="h-48 md:h-64 bg-gray-900 overflow-hidden">
+          {profile.banner_url ? (
+            <img src={profile.banner_url} alt="Capa" className="w-full h-full object-cover opacity-80" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-orange-500 to-red-600" />
+          )}
+        </div>
+        
+        {/* Profile Card Floating */}
+        <div className="max-w-3xl mx-auto px-4 -mt-16 relative z-10">
+          <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-6">
+             <div className="flex-shrink-0">
+               {profile.logo_url ? (
+                 <img src={profile.logo_url} className="w-24 h-24 rounded-full border-4 border-white shadow-md object-cover bg-white" alt="Logo" />
+               ) : (
+                 <div className="w-24 h-24 rounded-full border-4 border-white shadow-md bg-orange-100 flex items-center justify-center text-orange-600">
+                    <ChefHat size={40} />
+                 </div>
+               )}
+             </div>
+             <div className="flex-1">
+                <h1 className="text-2xl font-bold text-gray-900 mb-1">{profile.name}</h1>
+                <div className="flex flex-wrap justify-center md:justify-start gap-2 text-sm text-gray-500 mb-3">
+                   <span className="flex items-center gap-1"><MapPin size={14}/> {profile.city}</span>
+                   <span>•</span>
+                   <span>{profile.category}</span>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Aberto Agora
+                </div>
+             </div>
+             <div>
+                <a 
+                   href={`https://wa.me/55${profile.phone.replace(/\D/g, '')}`} 
+                   target="_blank" 
+                   rel="noreferrer"
+                   className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full shadow-lg flex items-center gap-2 transition-transform hover:scale-105"
+                >
+                  <MessageCircle size={20} /> Pedir no WhatsApp
+                </a>
              </div>
           </div>
-          <div className="mb-2 text-right">
-             <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-               profile.subscription?.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-             }`}>
-               Aberto Agora
-             </span>
-          </div>
-        </div>
-        <div className="px-4 mt-2">
-           <h1 className="text-2xl font-bold text-gray-900">{profile.name}</h1>
-           <p className="text-gray-500 text-sm">{profile.category} • {profile.city}</p>
-           
-           <div className="flex gap-2 mt-4">
-              <a 
-                href={`https://wa.me/55${profile.phone.replace(/\D/g, '')}`} 
-                target="_blank" 
-                rel="noreferrer"
-                className="flex-1 bg-green-500 text-white py-2 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-green-600 transition-colors"
-              >
-                <MessageCircle size={18} /> Pedir no Zap
-              </a>
-              <button 
-                onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                    alert('Link copiado!');
-                }}
-                className="p-2 border rounded-lg text-gray-600 hover:bg-gray-50"
-              >
-                <Share2 size={20} />
-              </button>
-           </div>
         </div>
       </div>
 
+      {/* Categories Navigation (Stickyish) */}
+      <div className="sticky top-0 bg-gray-50/95 backdrop-blur-sm z-20 py-4 shadow-sm border-b border-gray-200 mt-4 overflow-x-auto no-scrollbar">
+         <div className="max-w-3xl mx-auto px-4 flex gap-2">
+            {categories.map(cat => (
+              <a 
+                href={`#cat-${cat}`} 
+                key={cat}
+                className="whitespace-nowrap px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-700 transition-colors"
+              >
+                {cat}
+              </a>
+            ))}
+         </div>
+      </div>
+
       {/* Menu Categories */}
-      <div className="px-4 mt-6 space-y-8">
+      <div className="max-w-3xl mx-auto px-4 mt-6 space-y-10">
         {categories.map(cat => (
-          <div key={cat}>
-            <h2 className="text-lg font-bold text-gray-800 mb-3 border-l-4 border-orange-500 pl-3">{cat}</h2>
+          <div key={cat} id={`cat-${cat}`} className="scroll-mt-24">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              {cat}
+              <div className="h-px bg-gray-200 flex-1 ml-4"></div>
+            </h2>
+            
             <div className="grid gap-4">
               {products.filter(p => p.category === cat).map(product => (
-                <div key={product.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex justify-between">
-                  <div>
-                    <h3 className="font-bold text-gray-900">{product.name}</h3>
-                    <p className="text-sm text-gray-500 line-clamp-2 mt-1">{product.description}</p>
-                    <div className="font-bold text-green-700 mt-2">R$ {product.price.toFixed(2)}</div>
+                <div key={product.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex gap-4">
+                  {/* Text Content */}
+                  <div className="flex-1 flex flex-col justify-between">
+                     <div>
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-bold text-gray-900 text-lg leading-tight mb-1">{product.name}</h3>
+                          {product.isPopular && (
+                            <span className="bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide flex items-center gap-1">
+                               <Sparkles size={10} /> Top
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed">{product.description}</p>
+                     </div>
+                     <div className="mt-3 flex items-center justify-between">
+                        <span className="text-lg font-bold text-green-700">R$ {product.price.toFixed(2)}</span>
+                        <a 
+                          href={`https://wa.me/55${profile.phone.replace(/\D/g, '')}?text=Olá, gostaria de pedir: ${product.name}`}
+                          target="_blank"
+                          rel="noreferrer" 
+                          className="text-sm font-semibold text-orange-600 hover:text-orange-700 flex items-center gap-1"
+                        >
+                          Adicionar <Plus size={16}/>
+                        </a>
+                     </div>
                   </div>
-                  {product.isPopular && (
-                    <div className="ml-2">
-                      <span className="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-2 py-1 rounded uppercase">
-                        Top
-                      </span>
+
+                  {/* Image Content */}
+                  {product.image_url ? (
+                    <div className="w-28 h-28 flex-shrink-0">
+                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover rounded-lg bg-gray-100" />
                     </div>
+                  ) : (
+                    // Placeholder if no image, specific to category could be nice, but simple generic for now
+                    null 
                   )}
                 </div>
               ))}
@@ -1040,8 +1118,9 @@ const MenuPublicView = ({ profile, products }: { profile: BusinessProfile | null
         ))}
       </div>
       
-      <div className="text-center text-gray-400 text-xs mt-8 pb-4">
-        Cardápio Digital por <span className="font-bold">ViralMenu</span>
+      <div className="text-center text-gray-400 text-xs mt-12 pb-4">
+        <p className="mb-2">Imagens meramente ilustrativas.</p>
+        Cardápio Digital por <span className="font-bold text-orange-400">ViralMenu</span>
       </div>
     </div>
   );

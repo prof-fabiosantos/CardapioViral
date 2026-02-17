@@ -4,9 +4,31 @@ import { BusinessCategory, ToneOfVoice, PlanTier } from './types';
 declare const process: any;
 
 export const MOCK_PRODUCTS = [
-  { id: '1', name: 'X-Tudo Monstrão', description: 'Pão, carne artesanal 180g, queijo, presunto, bacon, ovo, salada e maionese da casa.', price: 32.90, category: 'Burgers', isPopular: true },
-  { id: '2', name: 'Batata Frita Suprema', description: 'Porção generosa com cheddar e bacon.', price: 25.00, category: 'Porções' },
-  { id: '3', name: 'Coca-Cola 2L', description: 'Gelada para acompanhar.', price: 12.00, category: 'Bebidas' },
+  { 
+    id: '1', 
+    name: 'X-Tudo Monstrão', 
+    description: 'Pão brioche selado na manteiga, 2 blends de 180g, muito cheddar, bacon crocante e maionese verde secreta.', 
+    price: 32.90, 
+    category: 'Burgers', 
+    isPopular: true,
+    image_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=500&q=60'
+  },
+  { 
+    id: '2', 
+    name: 'Batata Frita Suprema', 
+    description: 'Porção generosa para compartilhar. Acompanha cheddar cremoso e farofa de bacon.', 
+    price: 25.00, 
+    category: 'Porções',
+    image_url: 'https://images.unsplash.com/photo-1573080496987-a199f8cd4054?auto=format&fit=crop&w=500&q=60'
+  },
+  { 
+    id: '3', 
+    name: 'Coca-Cola 2L', 
+    description: 'Gelada para acompanhar a galera.', 
+    price: 12.00, 
+    category: 'Bebidas',
+    image_url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=500&q=60'
+  },
 ];
 
 // Configuration for Stripe Plans and Limits using process.env (Injected by Vite config)
