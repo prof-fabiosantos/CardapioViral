@@ -337,7 +337,8 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, items: Pr
       onComplete(finalProfile, insertedProducts as Product[]);
 
     } catch (error: any) {
-      alert('Erro ao salvar: ' + error.message);
+      console.error("Erro no Onboarding:", error);
+      alert('Erro ao salvar dados: ' + (error.message || 'Verifique se as colunas no banco de dados existem.'));
     } finally {
       setLoading(false);
     }
@@ -598,11 +599,19 @@ const ProductsManager = ({ products, onAdd, onDelete, profile, onUpgrade }: {
         price: Number(newProduct.price),
         description: newProduct.description || '',
         category: newProduct.category || 'Geral',
-        image_url: newProduct.image_url
+        // Se a coluna image_url não existir no banco, isso causará um erro 400.
+        // É importante rodar o script SQL de migração.
+        image_url: newProduct.image_url || null
       }).select().single();
 
       if (error) {
-        alert('Erro ao salvar produto');
+        console.error('Erro ao salvar produto:', error);
+        let msg = error.message;
+        // Mensagem amigável para erro comum de coluna inexistente
+        if (msg.includes('column "image_url" of relation "products" does not exist')) {
+           msg = 'A coluna "image_url" não foi criada no banco de dados. Execute o script SQL no Supabase.';
+        }
+        alert('Erro ao salvar produto: ' + msg);
       } else if (data) {
         onAdd(data as Product);
         setIsAdding(false);
@@ -615,7 +624,7 @@ const ProductsManager = ({ products, onAdd, onDelete, profile, onUpgrade }: {
     if (!id) return;
     const { error } = await supabase.from('products').delete().eq('id', id);
     if (error) {
-       alert('Erro ao deletar');
+       alert('Erro ao deletar: ' + error.message);
     } else {
        onDelete(id);
     }
