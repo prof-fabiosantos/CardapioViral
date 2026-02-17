@@ -11,7 +11,7 @@ import {
   Trash2, Plus, MessageCircle, Instagram, ExternalLink,
   Smartphone, Zap, ArrowRight, CheckCircle, Lock, AlertTriangle,
   SearchX, Mail, Image as ImageIcon, MapPin, Phone,
-  QrCode, X, Download
+  QrCode, X, Download, Upload, Loader2
 } from 'lucide-react';
 
 // Declare Stripe on window since we loaded it via script tag
@@ -633,28 +633,63 @@ const ProductsManager = ({ products, onAdd, onDelete, profile, onUpgrade }: {
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newProduct, setNewProduct] = useState<Partial<Product>>({ category: 'Geral' });
-  
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+
   const tier = profile.subscription?.tier || PlanTier.FREE;
   const limits = PLAN_CONFIG[tier].limits;
   const isLimitReached = products.length >= limits.products;
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0]);
+    }
+  };
+
   const handleSave = async () => {
-    if(newProduct.name && newProduct.price) {
+    if(!newProduct.name || !newProduct.price) {
+      alert("Preencha nome e preço.");
+      return;
+    }
+
+    setSaving(true);
+    let finalImageUrl = newProduct.image_url || null;
+
+    try {
+      // 1. Upload da imagem se existir
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${profile.user_id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(fileName, imageFile);
+
+        if (uploadError) {
+          // Se o bucket não existir, vai dar erro aqui.
+          throw new Error(`Erro no upload: ${uploadError.message}. Verifique se o bucket 'product-images' existe no Supabase.`);
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(fileName);
+        
+        finalImageUrl = publicUrl;
+      }
+
+      // 2. Salvar no Banco
       const { data, error } = await supabase.from('products').insert({
         user_id: profile.user_id,
         name: newProduct.name,
         price: Number(newProduct.price),
         description: newProduct.description || '',
         category: newProduct.category || 'Geral',
-        // Se a coluna image_url não existir no banco, isso causará um erro 400.
-        // É importante rodar o script SQL de migração.
-        image_url: newProduct.image_url || null
+        image_url: finalImageUrl
       }).select().single();
 
       if (error) {
         console.error('Erro ao salvar produto:', error);
         let msg = error.message;
-        // Mensagem amigável para erro comum de coluna inexistente
         if (msg.includes('column "image_url" of relation "products" does not exist')) {
            msg = 'A coluna "image_url" não foi criada no banco de dados. Execute o script SQL no Supabase.';
         }
@@ -663,7 +698,12 @@ const ProductsManager = ({ products, onAdd, onDelete, profile, onUpgrade }: {
         onAdd(data as Product);
         setIsAdding(false);
         setNewProduct({ category: 'Geral' });
+        setImageFile(null);
       }
+    } catch (err: any) {
+       alert(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -697,16 +737,74 @@ const ProductsManager = ({ products, onAdd, onDelete, profile, onUpgrade }: {
       </div>
 
       {isAdding && (
-        <div className="bg-white p-4 rounded-xl border border-orange-200 mb-6 animate-fade-in">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <input placeholder="Nome do Produto" className="border p-2 rounded" value={newProduct.name || ''} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
-            <input type="number" placeholder="Preço (R$)" className="border p-2 rounded" value={newProduct.price || ''} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})} />
-            <input placeholder="Descrição (ingredientes)" className="border p-2 rounded md:col-span-2" value={newProduct.description || ''} onChange={e => setNewProduct({...newProduct, description: e.target.value})} />
-            <input placeholder="URL da Imagem (https://...)" className="border p-2 rounded md:col-span-2" value={newProduct.image_url || ''} onChange={e => setNewProduct({...newProduct, image_url: e.target.value})} />
+        <div className="bg-white p-6 rounded-xl border border-orange-200 mb-6 animate-fade-in shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="space-y-1">
+               <label className="text-sm font-medium text-gray-700">Nome do Produto</label>
+               <input placeholder="Ex: X-Salada" className="border border-gray-300 w-full p-2 rounded focus:ring-2 focus:ring-orange-500 outline-none" value={newProduct.name || ''} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
+            </div>
+            <div className="space-y-1">
+               <label className="text-sm font-medium text-gray-700">Preço (R$)</label>
+               <input type="number" placeholder="0.00" className="border border-gray-300 w-full p-2 rounded focus:ring-2 focus:ring-orange-500 outline-none" value={newProduct.price || ''} onChange={e => setNewProduct({...newProduct, price: Number(e.target.value)})} />
+            </div>
+            <div className="space-y-1 md:col-span-2">
+               <label className="text-sm font-medium text-gray-700">Descrição</label>
+               <input placeholder="Ingredientes, porção..." className="border border-gray-300 w-full p-2 rounded focus:ring-2 focus:ring-orange-500 outline-none" value={newProduct.description || ''} onChange={e => setNewProduct({...newProduct, description: e.target.value})} />
+            </div>
+            
+            <div className="md:col-span-2 space-y-2 pt-2">
+               <label className="text-sm font-medium text-gray-700">Imagem do Produto</label>
+               <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                  {/* URL Input */}
+                  <div className="flex-1 w-full">
+                     <input
+                        type="text"
+                        placeholder="Cole uma URL de imagem..."
+                        className="border border-gray-300 w-full p-2 rounded focus:ring-2 focus:ring-orange-500 outline-none text-sm"
+                        value={newProduct.image_url || ''}
+                        onChange={e => setNewProduct({...newProduct, image_url: e.target.value})}
+                        disabled={!!imageFile}
+                     />
+                  </div>
+                  <div className="text-gray-400 text-sm font-medium">OU</div>
+                  {/* File Upload Button */}
+                  <div className="relative">
+                      <input 
+                         type="file" 
+                         id="file-upload" 
+                         accept="image/*"
+                         className="hidden"
+                         onChange={handleFileChange}
+                      />
+                      <label 
+                         htmlFor="file-upload" 
+                         className={`cursor-pointer flex items-center gap-2 px-4 py-2 rounded border transition-colors ${imageFile ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                      >
+                         <Upload size={18} />
+                         {imageFile ? 'Imagem Selecionada' : 'Fazer Upload'}
+                      </label>
+                  </div>
+               </div>
+               {imageFile && (
+                  <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 p-2 rounded w-fit">
+                    <CheckCircle size={12} />
+                    Arquivo: <strong>{imageFile.name}</strong>
+                    <button onClick={() => setImageFile(null)} className="ml-2 text-red-500 hover:underline">Remover</button>
+                  </div>
+               )}
+            </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <button onClick={() => setIsAdding(false)} className="text-gray-500 px-4 py-2">Cancelar</button>
-            <button onClick={handleSave} className="bg-green-600 text-white px-4 py-2 rounded">Salvar</button>
+
+          <div className="flex justify-end gap-2 border-t pt-4">
+            <button onClick={() => { setIsAdding(false); setImageFile(null); }} className="text-gray-500 px-4 py-2 hover:bg-gray-50 rounded">Cancelar</button>
+            <button 
+               onClick={handleSave} 
+               disabled={saving}
+               className="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700 flex items-center gap-2 disabled:opacity-50"
+            >
+              {saving && <Loader2 className="animate-spin" size={18} />}
+              {saving ? 'Salvando...' : 'Salvar Produto'}
+            </button>
           </div>
         </div>
       )}
