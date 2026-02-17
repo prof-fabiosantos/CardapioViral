@@ -185,12 +185,31 @@ export const dbService = {
       // 3. Buscamos os perfis desses usuários (Restaurantes) para preencher os cards
       const distinctUserIds = [...new Set(products.map((p: any) => p.user_id))];
       
-      const { data: profiles, error: profilesError } = await supabase
+      // Tenta buscar com neighborhood
+      let profilesData;
+      let profilesError;
+      
+      const responseFull = await supabase
          .from('profiles')
          .select('user_id, name, slug, city, neighborhood, phone, logo_url')
          .in('user_id', distinctUserIds);
+
+      if (responseFull.error && (responseFull.error.message?.includes('neighborhood') || responseFull.error.code === '42703')) {
+          // Fallback se a coluna não existir
+          console.warn("Retrying profile fetch without neighborhood column");
+          const responseLegacy = await supabase
+             .from('profiles')
+             .select('user_id, name, slug, city, phone, logo_url')
+             .in('user_id', distinctUserIds);
+          profilesData = responseLegacy.data;
+          profilesError = responseLegacy.error;
+      } else {
+          profilesData = responseFull.data;
+          profilesError = responseFull.error;
+      }
       
       if (profilesError) throw profilesError;
+      const profiles = profilesData;
 
       // 4. Cruzamos os dados (Join manual no cliente)
       const results: PublicProduct[] = [];
@@ -204,7 +223,7 @@ export const dbService = {
               name: ownerProfile.name,
               slug: ownerProfile.slug,
               city: ownerProfile.city,
-              neighborhood: ownerProfile.neighborhood,
+              neighborhood: ownerProfile.neighborhood, // pode ser undefined se cair no fallback
               phone: ownerProfile.phone,
               logo_url: ownerProfile.logo_url
             }

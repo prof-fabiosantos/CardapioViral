@@ -589,7 +589,17 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, products:
          subscription: { tier: PlanTier.FREE, status: 'active', periodEnd: Date.now() + 30*24*60*60*1000 }
       };
 
-      const { data: profile, error } = await supabase.from('profiles').insert(newProfile).select().single();
+      // Tenta inserir
+      let { data: profile, error } = await supabase.from('profiles').insert(newProfile).select().single();
+
+      // Fallback para schema antigo (sem coluna neighborhood)
+      if (error && (error.message?.includes('neighborhood') || error.code === '42703')) { // 42703 is undefined_column
+          console.warn("Schema desatualizado: Coluna neighborhood ausente. Inserindo sem ela.");
+          const { neighborhood, ...profileLegacy } = newProfile;
+          const retry = await supabase.from('profiles').insert(profileLegacy).select().single();
+          profile = retry.data;
+          error = retry.error;
+      }
 
       if (error) {
          console.error(error);
