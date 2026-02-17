@@ -283,7 +283,7 @@ const Landing = ({ onStart, onLogin, onDiscover }: { onStart: () => void, onLogi
 
 const DiscoveryView = ({ onBack, onSelectStore }: { onBack: () => void, onSelectStore: (slug: string) => void }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [cityFilter, setCityFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState(''); // Cidade ou Bairro
   const [priceFilter, setPriceFilter] = useState<number | null>(null); // null = all, 0 = 0-50, 50 = 50-100, 100 = 100+
   const [categoryFilter, setCategoryFilter] = useState('');
   
@@ -304,7 +304,7 @@ const DiscoveryView = ({ onBack, onSelectStore }: { onBack: () => void, onSelect
     else if (priceFilter === 100) { minPrice = 100; maxPrice = 9999; }
 
     const results = await dbService.searchGlobalProducts({
-      city: cityFilter,
+      location: locationFilter,
       searchTerm: searchTerm,
       category: categoryFilter,
       minPrice,
@@ -344,9 +344,9 @@ const DiscoveryView = ({ onBack, onSelectStore }: { onBack: () => void, onSelect
                    <MapPin className="text-gray-400 mr-2" />
                    <input 
                       className="w-full outline-none text-gray-700 font-medium placeholder-gray-400" 
-                      placeholder="Sua cidade (Ex: São Paulo)"
-                      value={cityFilter}
-                      onChange={e => setCityFilter(e.target.value)}
+                      placeholder="Sua cidade ou bairro (Ex: Moema)"
+                      value={locationFilter}
+                      onChange={e => setLocationFilter(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && handleSearch()}
                    />
                 </div>
@@ -432,7 +432,11 @@ const DiscoveryView = ({ onBack, onSelectStore }: { onBack: () => void, onSelect
                               )}
                               <div className="overflow-hidden">
                                  <p className="text-xs font-bold text-gray-900 truncate">{product.profile?.name}</p>
-                                 <p className="text-[10px] text-gray-500 truncate flex items-center gap-1"><MapPin size={10}/> {product.profile?.city}</p>
+                                 <p className="text-[10px] text-gray-500 truncate flex items-center gap-1">
+                                    <MapPin size={10}/> 
+                                    {product.profile?.city} 
+                                    {product.profile?.neighborhood && <span className="text-gray-400"> • {product.profile.neighborhood}</span>}
+                                 </p>
                               </div>
                            </div>
                            <button 
@@ -557,6 +561,7 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, products:
    const [formData, setFormData] = useState<Partial<BusinessProfile>>({
      name: '',
      city: '',
+     neighborhood: '',
      category: BusinessCategory.OUTRO,
      tone: ToneOfVoice.CASUAL,
      phone: ''
@@ -574,6 +579,7 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, products:
          user_id: user.id,
          name: formData.name || '',
          city: formData.city || '',
+         neighborhood: formData.neighborhood || '',
          category: formData.category || BusinessCategory.OUTRO,
          tone: formData.tone || ToneOfVoice.CASUAL,
          phone: formData.phone || '',
@@ -587,7 +593,7 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, products:
 
       if (error) {
          console.error(error);
-         alert("Erro ao criar perfil.");
+         alert("Erro ao criar perfil. " + error.message);
          setLoading(false);
          return;
       }
@@ -627,6 +633,10 @@ const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, products:
                 <div>
                    <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
                    <input className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-orange-500" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} placeholder="Ex: São Paulo" />
+                </div>
+                <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+                   <input className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-orange-500" value={formData.neighborhood} onChange={e => setFormData({...formData, neighborhood: e.target.value})} placeholder="Ex: Vila Madalena" />
                 </div>
                 <div>
                    <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>

@@ -115,15 +115,53 @@ export const dbService = {
    * Busca produtos de todos os restaurantes com filtros
    */
   async searchGlobalProducts(filters: {
-    city?: string;
+    location?: string; // Cidade OU Bairro
     category?: string;
     minPrice?: number;
     maxPrice?: number;
     searchTerm?: string;
   }): Promise<PublicProduct[]> {
     try {
-      // 1. Primeiro buscamos os produtos que batem com os filtros de produto
+      let userIdsToFilter: string[] | undefined;
+
+      // 1. ESTRATÉGIA CRÍTICA: Se houver filtro de Localização, buscamos PERFIS PRIMEIRO.
+      // Isso corrige o bug onde a busca de produtos genérica ignora resultados locais se eles não estiverem nos top 50 globais.
+      if (filters.location && filters.location.trim() !== '') {
+         // Tenta buscar em cidade OU bairro
+         // Nota: Isso assume que a tabela profiles tem a coluna neighborhood.
+         // Se der erro (coluna não existe), tentamos apenas city no catch/fallback
+         
+         const term = filters.location.trim();
+         
+         // Usamos ilike em city OR neighborhood
+         const { data: profiles, error } = await supabase
+            .from('profiles')
+            .select('user_id')
+            .or(`city.ilike.%${term}%,neighborhood.ilike.%${term}%`); // Sintaxe do Supabase para OR
+         
+         if (error) {
+             console.warn('Erro ao filtrar por bairro/cidade (possivelmente coluna inexistente), tentando apenas cidade...', error.message);
+             // Fallback: Busca apenas por cidade se a coluna bairro não existir ainda no DB
+             const { data: cityProfiles } = await supabase
+                .from('profiles')
+                .select('user_id')
+                .ilike('city', `%${term}%`);
+                
+             if (!cityProfiles || cityProfiles.length === 0) return [];
+             userIdsToFilter = cityProfiles.map(p => p.user_id);
+         } else {
+             if (!profiles || profiles.length === 0) return [];
+             userIdsToFilter = profiles.map((p: any) => p.user_id);
+         }
+      }
+
+      // 2. Query de Produtos
+      // Agora filtramos os produtos apenas dos usuários encontrados (se houver filtro de local)
       let query = supabase.from('products').select('*');
+
+      if (userIdsToFilter) {
+         query = query.in('user_id', userIdsToFilter);
+      }
 
       if (filters.category) {
         query = query.eq('category', filters.category);
@@ -144,23 +182,17 @@ export const dbService = {
       if (error) throw error;
       if (!products || products.length === 0) return [];
 
-      // 2. Coletamos os IDs dos usuários donos desses produtos
-      const userIds = [...new Set(products.map((p: any) => p.user_id))];
-
-      // 3. Buscamos os perfis desses usuários (Restaurantes)
-      // Se tiver filtro de cidade, aplicamos aqui
-      let profilesQuery = supabase.from('profiles').select('user_id, name, slug, city, phone, logo_url').in('user_id', userIds);
+      // 3. Buscamos os perfis desses usuários (Restaurantes) para preencher os cards
+      const distinctUserIds = [...new Set(products.map((p: any) => p.user_id))];
       
-      if (filters.city) {
-        profilesQuery = profilesQuery.ilike('city', `%${filters.city}%`);
-      }
-
-      const { data: profiles, error: profilesError } = await profilesQuery;
+      const { data: profiles, error: profilesError } = await supabase
+         .from('profiles')
+         .select('user_id, name, slug, city, neighborhood, phone, logo_url')
+         .in('user_id', distinctUserIds);
       
       if (profilesError) throw profilesError;
 
       // 4. Cruzamos os dados (Join manual no cliente)
-      // Apenas retornamos produtos cujo dono (profile) foi encontrado (respeitando o filtro de cidade)
       const results: PublicProduct[] = [];
       
       products.forEach((product: any) => {
@@ -172,6 +204,7 @@ export const dbService = {
               name: ownerProfile.name,
               slug: ownerProfile.slug,
               city: ownerProfile.city,
+              neighborhood: ownerProfile.neighborhood,
               phone: ownerProfile.phone,
               logo_url: ownerProfile.logo_url
             }

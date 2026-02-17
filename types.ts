@@ -35,6 +35,7 @@ export interface PublicProduct extends Product {
     name: string;
     slug: string;
     city: string;
+    neighborhood?: string; // Bairro
     phone: string;
     logo_url?: string;
   }
@@ -59,6 +60,7 @@ export interface BusinessProfile {
   name: string;
   slug: string; // URL identifier
   city: string;
+  neighborhood?: string; // Novo campo: Bairro
   category: BusinessCategory;
   tone: ToneOfVoice;
   phone: string; // WhatsApp
