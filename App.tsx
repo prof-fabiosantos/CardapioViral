@@ -224,33 +224,6 @@ const MainHub = ({ onClient, onBusiness }: { onClient: () => void, onBusiness: (
 
 // --- BUSINESS LANDING PAGE (SOU RESTAURANTE) ---
 const Landing = ({ onStart, onLogin, onBack }: { onStart: () => void, onLogin: () => void, onBack: () => void }) => {
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const toggleFaq = (index: number) => {
-    setOpenFaq(openFaq === index ? null : index);
-  };
-  const faqs = [
-      {
-        q: "Preciso ter computador para usar?",
-        a: "Não! O Cardápio Viral foi feito pensando em quem usa celular. Você consegue criar seu cardápio, gerar posts e gerenciar pedidos tudo pelo smartphone."
-      },
-      {
-        q: "Serve para qual tipo de negócio?",
-        a: "Perfeito para delivery, pizzarias, hamburguerias, confeitarias, lanchonetes e bares que querem vender pelo WhatsApp e Instagram sem pagar comissões abusivas."
-      },
-      {
-        q: "O cliente precisa baixar aplicativo?",
-        a: "Não. Seu cliente acessa um link (ex: viralmenu.com/sua-loja), escolhe o pedido e envia direto para o seu WhatsApp já pronto. Sem login, sem download, sem barreira."
-      },
-      {
-        q: "Como funciona a IA de conteúdo?",
-        a: "Nossa IA 'lê' o seu cardápio e cria legendas, roteiros de reels e textos de venda persuasivos focados nos seus produtos. É como ter uma agência de marketing no bolso."
-      },
-      {
-        q: "Posso cancelar quando quiser?",
-        a: "Sim. Sem fidelidade, sem multas. Você usa o mês que pagou e pode cancelar a renovação a qualquer momento."
-      }
-    ];
-
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans">
       {/* Navbar */}
@@ -1090,7 +1063,14 @@ const BillingView = ({ profile }: { profile: BusinessProfile }) => {
 
 // --- PUBLIC MENU VIEW ---
 const MenuPublicView = ({ profile, products }: { profile: BusinessProfile | null, products: Product[] }) => {
-   if (!profile) return <div className="min-h-screen flex items-center justify-center">Loja não encontrada.</div>;
+   if (!profile) return (
+       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+           <AlertTriangle size={48} className="text-orange-500 mb-4" />
+           <h2 className="text-xl font-bold text-gray-900">Loja não encontrada</h2>
+           <p className="text-gray-500 mt-2">O link pode estar incorreto ou a loja foi desativada.</p>
+           <a href="#" className="mt-6 text-orange-600 font-bold hover:underline">Voltar para o Início</a>
+       </div>
+   );
 
    const categories = [...new Set(products.map(p => p.category))];
    
@@ -1174,33 +1154,41 @@ const App = () => {
       const hash = window.location.hash;
       
       // FIX: Ignore Supabase Auth redirects (Magic Links)
-      // These contain access_token, type=recovery, etc.
-      // We let the onAuthStateChange listener (in checkAuth) handle the session/profile load.
       if (hash.includes('access_token=') || hash.includes('type=recovery') || hash.includes('error=')) {
          setLoading(true);
          return; 
       }
 
-      if (hash.startsWith('#/m/')) {
-        setLoading(true);
-        const slug = hash.replace('#/m/', '').split('?')[0];
-        const { data: publicProfile } = await supabase.from('profiles').select('*').eq('slug', slug).single();
+      setLoading(true);
 
-        if (publicProfile) {
-           const { data: publicProducts } = await supabase.from('products').select('*').eq('user_id', publicProfile.user_id);
-           setProfile(publicProfile as BusinessProfile);
-           setProducts(publicProducts as Product[] || []);
-           setView(AppView.MENU_PREVIEW);
-        } else {
-           setProfile(null);
-           setView(AppView.MENU_PREVIEW);
+      try {
+        if (hash.startsWith('#/m/')) {
+            const slug = hash.replace('#/m/', '').split('?')[0];
+            const { data: publicProfile, error: profileError } = await supabase.from('profiles').select('*').eq('slug', slug).single();
+
+            if (profileError) throw profileError;
+
+            if (publicProfile) {
+              const { data: publicProducts } = await supabase.from('products').select('*').eq('user_id', publicProfile.user_id);
+              setProfile(publicProfile as BusinessProfile);
+              setProducts(publicProducts as Product[] || []);
+              setView(AppView.MENU_PREVIEW);
+            } else {
+              setProfile(null);
+              setView(AppView.MENU_PREVIEW); // Will show "Store not found"
+            }
+        } else if (hash === '#/discovery') {
+            setView(AppView.DISCOVERY);
+        } else if (!hash || hash === '#/' || hash === '#') {
+            // Root path: checkAuth will handle dashboard or Hub
+            if (!session) setView(AppView.MAIN_HUB);
         }
+      } catch (err) {
+        console.error("Routing error:", err);
+        // Fallback to Hub in case of crash
+        if (!session) setView(AppView.MAIN_HUB);
+      } finally {
         setLoading(false);
-      } else if (hash === '#/discovery') {
-         setView(AppView.DISCOVERY);
-         setLoading(false);
-      } else if (hash === '') {
-         // Defer to checkAuth for root path to handle session check
       }
     };
 
@@ -1209,26 +1197,49 @@ const App = () => {
     } else {
        checkAuth();
     }
+    
+    // Safety Timeout: Force stop loading after 8s to prevent infinite spinner
+    const safetyTimeout = setTimeout(() => {
+        setLoading((prev) => {
+            if (prev) {
+                console.warn("Safety timeout triggered. Forcing loading stop.");
+                return false;
+            }
+            return false;
+        });
+    }, 8000);
+
     window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    return () => {
+        window.removeEventListener('hashchange', handleHashChange);
+        clearTimeout(safetyTimeout);
+    };
   }, []); // Empty dependency array to prevent loops
 
   const checkAuth = async () => {
     setLoading(true);
     
-    // Check current session
-    const { data: { session: currentSession } } = await supabase.auth.getSession();
-    setSession(currentSession);
-    
-    if (currentSession) {
-       await fetchUserData(currentSession.user.id);
-    } else {
-       // Only force MAIN_HUB if we are NOT processing a Magic Link (which has a hash)
-       const hash = window.location.hash;
-       if (!hash.includes('access_token=')) {
-          if (!hash) setView(AppView.MAIN_HUB);
-          setLoading(false);
-       }
+    try {
+        // Check current session
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        setSession(currentSession);
+        
+        if (currentSession) {
+          await fetchUserData(currentSession.user.id);
+        } else {
+          const hash = window.location.hash;
+          // Only force MAIN_HUB if we are NOT in a specific route
+          if (!hash.includes('access_token=') && !hash.startsWith('#/m/') && hash !== '#/discovery') {
+              setView(AppView.MAIN_HUB);
+          }
+        }
+    } catch (err) {
+        console.error("Auth check failed", err);
+    } finally {
+        // Only stop loading if we are not waiting for a specific route that handles its own loading
+        if (!window.location.hash.startsWith('#/m/')) {
+            setLoading(false);
+        }
     }
 
     // Subscribe to changes
@@ -1236,7 +1247,6 @@ const App = () => {
       setSession(session);
       
       if (session) {
-        // If we just signed in (Magic Link success), fetch data
         if (!profile || profile.user_id !== session.user.id) {
            await fetchUserData(session.user.id);
         }
@@ -1246,8 +1256,8 @@ const App = () => {
            setProfile(null);
            setProducts([]);
            setView(AppView.MAIN_HUB);
+           setLoading(false);
         }
-        setLoading(false);
       }
     });
 
@@ -1299,14 +1309,17 @@ const App = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setProfile(null);
+    setProducts([]);
     setView(AppView.MAIN_HUB);
     window.location.hash = '';
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="animate-spin text-orange-600" size={48} />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 flex-col">
+        <Loader2 className="animate-spin text-orange-600 mb-4" size={48} />
+        <p className="text-gray-400 text-sm animate-pulse">Carregando...</p>
       </div>
     );
   }
