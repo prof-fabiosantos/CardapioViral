@@ -32,10 +32,40 @@ const contentSchema: Schema = {
       cta: { type: Type.STRING, description: "Chamada para ação (Ex: Peça no Link da Bio)" },
       hashtags: { type: Type.ARRAY, items: { type: Type.STRING } },
       script: { type: Type.STRING, description: "Roteiro visual apenas para Reels" },
-      suggestion: { type: Type.STRING, description: "Descrição visual EXTREMAMENTE DETALHADA para criar uma imagem. IMPORTANTE: NÃO USE NOMES DE MARCAS (Ex: use 'refrigerante' em vez de 'Coca-Cola', 'ketchup' em vez de 'Heinz')." },
+      suggestion: { type: Type.STRING, description: "Descrição visual EXTREMAMENTE DETALHADA para criar uma imagem. IMPORTANTE: NÃO USE NOMES DE MARCAS (Ex: use 'refrigerante escuro' em vez de 'Coca-Cola', 'creme de avelã' em vez de 'Nutella')." },
     },
     required: ["type", "caption", "cta", "hashtags"],
   }
+};
+
+// Função para remover marcas registradas que bloqueiam a geração de imagens
+const sanitizeImagePrompt = (text: string): string => {
+  return text
+    // Refrigerantes
+    .replace(/Coca-Cola|Coca Cola|Coke|Coca/gi, "ice cold dark soda glass")
+    .replace(/Pepsi/gi, "dark soda")
+    .replace(/Fanta/gi, "orange soda")
+    .replace(/Guaraná|Guarana|Antarctica/gi, "golden brazilian soda")
+    .replace(/Sprite|Soda Limão/gi, "lemon lime soda")
+    .replace(/Refrigerante de cola/gi, "dark soda in a glass")
+    // Chocolates e Doces
+    .replace(/Nutella/gi, "chocolate hazelnut cream spread")
+    .replace(/Ovomaltine/gi, "crunchy chocolate malt")
+    .replace(/KitKat|Kit Kat/gi, "chocolate wafer bar")
+    .replace(/Kinder/gi, "milk chocolate")
+    .replace(/M&M|Confeti/gi, "colorful chocolate candies")
+    .replace(/Oreo|Negresco/gi, "dark chocolate sandwich cookie")
+    // Molhos e Outros
+    .replace(/Hellmann's|Hellmanns/gi, "creamy mayonnaise")
+    .replace(/Heinz/gi, "ketchup")
+    .replace(/Catupiry/gi, "creamy cheese")
+    .replace(/Cheddar McMelt/gi, "melted cheddar cheese")
+    // Fast Food Brands
+    .replace(/McDonald's|McDonalds|Mc Donalds/gi, "American style burger")
+    .replace(/Burger King|BK/gi, "flame grilled burger")
+    .replace(/Starbucks/gi, "coffee cup")
+    .replace(/Heineken/gi, "green beer bottle with condensation")
+    .replace(/Budweiser/gi, "red beer bottle");
 };
 
 // Helper para gerar imagem individual
@@ -48,23 +78,17 @@ const generateImageForContent = async (item: any, profile: BusinessProfile): Pro
     // Determinar Aspect Ratio baseado no tipo
     const aspectRatio = item.type === 'STORY' || item.type === 'REELS' ? '9:16' : '1:1';
 
-    // Melhorar o prompt para o modelo de imagem
-    // Forçamos a remoção de termos de marca comuns caso a IA de texto tenha falhado nisso
-    const cleanSuggestion = item.suggestion
-      .replace(/Coca-Cola|Coca Cola|Coke/gi, "dark soda glass bottle")
-      .replace(/Pepsi/gi, "soda")
-      .replace(/Nutella/gi, "chocolate hazelnut cream")
-      .replace(/Heineken/gi, "green beer bottle")
-      .replace(/McDonald's|McDonalds/gi, "fast food burger");
+    // Limpeza agressiva do prompt
+    const cleanSuggestion = sanitizeImagePrompt(item.suggestion);
 
     const imagePrompt = `
-      Professional food photography advertisement for ${profile.name} (${profile.category}).
+      Professional food photography advertisement for a ${profile.category} named "${profile.name}".
       Subject: ${cleanSuggestion}.
-      Style: High quality, appetizing, studio lighting, 4k resolution, cinematic composition, delicious.
-      No text overlays inside the image. No brand logos.
+      Style: Award-winning food photography, 8k resolution, highly detailed, appetizing, cinematic lighting, macro shot.
+      IMPORTANT: GENERIC UNBRANDED PACKAGING. NO LOGOS. NO TEXT. NO TRADEMARKS.
     `;
 
-    console.log(`Gerando imagem para ${item.type}...`);
+    console.log(`[Gerando Imagem] Prompt Sanitizado: ${cleanSuggestion}`);
 
     const response = await ai.models.generateContent({
       model: IMAGE_MODEL_NAME,
@@ -74,7 +98,6 @@ const generateImageForContent = async (item: any, profile: BusinessProfile): Pro
       config: {
         imageConfig: {
           aspectRatio: aspectRatio,
-          // imageSize: "1K" // Supported only on Pro models, Flash sets automatically
         }
       },
     });
@@ -89,11 +112,10 @@ const generateImageForContent = async (item: any, profile: BusinessProfile): Pro
 
   } catch (error: any) {
     console.warn(`Erro ao gerar imagem para ${item.type}:`, error);
-    // Se o erro for de segurança, logamos especificamente
     if (error.message?.includes('Safety') || error.message?.includes('Blocked')) {
-       console.warn("Imagem bloqueada por filtros de segurança (provavelmente marca registrada).");
+       console.warn("IMAGEM BLOQUEADA: O modelo detectou conteúdo sensível ou marca registrada.");
     }
-    return undefined; // Retorna sem imagem se falhar, não quebra o fluxo
+    return undefined;
   }
 };
 
@@ -115,41 +137,35 @@ export const generateMarketingContent = async (
     TOM DE VOZ: ${profile.tone}
     CONTATO: ${profile.phone}
     
-    CARDÁPIO ATIVO (FONTE DA VERDADE - SÓ USE ESTES PREÇOS E PRODUTOS):
+    CARDÁPIO ATIVO (FONTE DA VERDADE):
     ${productListStr}
     
-    CONTEXTO DO USUÁRIO: ${getCategoryPrompt(profile.category)}
+    CONTEXTO: ${getCategoryPrompt(profile.category)}
   `;
 
   if (generationType === 'PACK_SEMANAL') {
     prompt += `
-    TAREFA: Crie um mini-pack de conteúdo variado (5 itens).
-    Inclua:
-    - 2 Legendas para Feed (foco em desejo visual e prova social)
-    - 2 Textos curtos para Stories (interação, enquete)
-    - 1 Roteiro de Reels (tendência/audio em alta)
-    - 1 Texto para Lista de Transmissão WhatsApp (promoção ou novidade)
+    TAREFA: Crie um mini-pack (5 itens).
+    - 2 Posts Feed
+    - 2 Stories
+    - 1 Reels Script
+    - 1 Texto WhatsApp
     `;
   } else if (generationType === 'OFERTA_DIA') {
     prompt += `
-    TAREFA: Crie um BUNDLE DE OFERTA DO DIA (3 itens que funcionam juntos).
-    
-    Item 1 (FEED): Legenda para Instagram. Curta, direta, foco na escassez.
-    Item 2 (WHATSAPP): Mensagem para Lista de Transmissão. Começa com saudação, oferta clara, link de pedido.
-    Item 3 (STORY): Este item servirá de base para a ARTE visual. 
-         - No campo 'suggestion', descreva como deve ser o design da imagem (ex: "Close-up ultra realista do Burguer X com queijo derretendo, fundo desfocado escuro").
-         - IMPORTANTE: NÃO CITE MARCAS FAMOSAS (ex: Coca-Cola) na suggestion. Use genéricos (ex: refrigerante, cola).
-         - No campo 'hook', coloque o TÍTULO PRINCIPAL da arte (Ex: "SÓ HOJE!").
-         - No campo 'caption', coloque o SUBTÍTULO ou PREÇO da arte.
-    
-    Produto Foco: ${customContext || 'Escolha um produto popular da lista acima'}.
-    IMPORTANTE: Se o produto escolhido não tem preço no cadastro, use "Consulte". Não invente valor.
+    TAREFA: Crie um BUNDLE DE OFERTA DO DIA (3 itens).
+    Item 1 (FEED): Legenda Instagram.
+    Item 2 (WHATSAPP): Mensagem Lista Transmissão.
+    Item 3 (STORY): Base para ARTE visual. 
+         - 'suggestion': Descrição visual da comida. PROIBIDO USAR NOMES DE MARCAS (Ex: use 'refrigerante preto' e não Coca-Cola).
+         - 'hook': Título (Ex: "SÓ HOJE!").
+         - 'caption': Preço/Subtítulo.
+    Produto Foco: ${customContext || 'Escolha o melhor produto'}.
     `;
   } else if (generationType === 'RESPOSTA') {
     prompt += `
-    TAREFA: O cliente perguntou: "${customContext}".
-    Gere 3 opções de resposta educada e vendedora para usar no Direct/Comentários.
-    E gere 1 ideia de post baseada nessa dúvida frequente.
+    TAREFA: Responda: "${customContext}".
+    Gere 3 opções de resposta e 1 ideia de post.
     `;
   }
 
@@ -174,8 +190,7 @@ export const generateMarketingContent = async (
     const rawData = JSON.parse(text);
     const resultContents: GeneratedContent[] = [];
     
-    // 2. Processa as imagens SEQUENCIALMENTE para evitar Rate Limit e Bloqueios
-    // Usar 'for...of' em vez de Promise.all
+    // 2. Processa as imagens SEQUENCIALMENTE com maior delay
     for (const item of rawData) {
        const baseItem: GeneratedContent = {
          ...item,
@@ -184,10 +199,9 @@ export const generateMarketingContent = async (
          type: item.type || (generationType === 'RESPOSTA' ? 'REPLY' : 'FEED')
        };
 
-       // Gera imagem se tiver sugestão (exceto para respostas de texto puro)
        if (item.suggestion && item.type !== 'REPLY') {
-          // Pequeno delay artificial para aliviar a API se houver muitos itens
-          await new Promise(r => setTimeout(r, 500)); 
+          // Aumentado delay para 2 segundos para evitar rate limit e dar fôlego ao modelo
+          await new Promise(r => setTimeout(r, 2000)); 
           
           const imageBase64 = await generateImageForContent(item, profile);
           if (imageBase64) {
@@ -202,9 +216,8 @@ export const generateMarketingContent = async (
 
   } catch (error: any) {
     console.error("Gemini Error:", error);
-    // Verificar se é erro de cota (429) e lançar erro amigável
-    if (error.status === 429 || error.message?.includes('429') || error.message?.includes('Quota exceeded')) {
-        throw new Error("Muitas solicitações ao mesmo tempo. Aguarde 30 segundos.");
+    if (error.status === 429 || error.message?.includes('429')) {
+        throw new Error("Muitas solicitações. Aguarde um momento.");
     }
     throw error;
   }
