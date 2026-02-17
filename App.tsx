@@ -347,66 +347,84 @@ const Landing = ({ onStart, onLogin }: { onStart: () => void, onLogin: () => voi
 
       {/* Planos Section */}
       <section id="plans" className="py-20 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Conheça nossos Planos</h2>
-            <p className="text-gray-500 text-lg">Custa menos que uma pizza por mês.</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Escolha seu Plano</h2>
+            <p className="text-gray-500 text-lg">Soluções para quem está começando e para quem quer dominar o mercado.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* Free */}
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
-               <h3 className="font-bold text-xl text-gray-900">Trial Grátis</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Trial */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col">
+               <h3 className="font-bold text-lg text-gray-900">Trial Grátis</h3>
                <div className="my-4">
-                 <span className="text-4xl font-extrabold">R$ 0</span>
-                 <span className="text-gray-500">/7 dias</span>
+                 <span className="text-3xl font-extrabold">R$ 0</span>
+                 <span className="text-gray-500 text-sm">/7 dias</span>
                </div>
-               <p className="text-gray-500 text-sm mb-6">Para testar a ferramenta e ver se funciona para você.</p>
-               <button onClick={onStart} className="w-full py-3 border-2 border-gray-900 text-gray-900 font-bold rounded-lg hover:bg-gray-50 mb-6">
-                 Começar Grátis
+               <p className="text-gray-500 text-sm mb-6 flex-1">Para usuários novos que querem testar se a ferramenta funciona.</p>
+               <button onClick={onStart} className="w-full py-2 border-2 border-gray-900 text-gray-900 font-bold rounded-lg hover:bg-gray-50 mb-6 text-sm">
+                 Testar Agora
                </button>
                <ul className="space-y-3 text-sm text-gray-600">
-                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> 5 Produtos</li>
-                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> 5 Gerações de IA</li>
-                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> Cardápio Digital</li>
+                 <li className="flex gap-2"><CheckCircle size={16} className="text-green-500 flex-shrink-0" /> 5 Produtos</li>
+                 <li className="flex gap-2"><CheckCircle size={16} className="text-green-500 flex-shrink-0" /> 5 Gerações de IA</li>
+                 <li className="flex gap-2"><CheckCircle size={16} className="text-green-500 flex-shrink-0" /> IA Básica (Pack Semanal)</li>
+               </ul>
+            </div>
+
+            {/* Solo */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col">
+               <h3 className="font-bold text-lg text-gray-900">Plano Solo</h3>
+               <div className="my-4">
+                 <span className="text-3xl font-extrabold">R$ 29</span>
+                 <span className="text-gray-500 text-sm">/mês</span>
+               </div>
+               <p className="text-gray-500 text-sm mb-6 flex-1">Para pequenos negócios que estão começando e têm um cardápio enxuto.</p>
+               <button onClick={onStart} className="w-full py-2 bg-gray-100 text-gray-800 font-bold rounded-lg hover:bg-gray-200 mb-6 text-sm">
+                 Começar Solo
+               </button>
+               <ul className="space-y-3 text-sm text-gray-600">
+                 <li className="flex gap-2"><CheckCircle size={16} className="text-green-500 flex-shrink-0" /> 20 Produtos</li>
+                 <li className="flex gap-2"><CheckCircle size={16} className="text-green-500 flex-shrink-0" /> 10 Gerações/mês</li>
+                 <li className="flex gap-2"><CheckCircle size={16} className="text-green-500 flex-shrink-0" /> IA Intermediária (+ Oferta do Dia)</li>
                </ul>
             </div>
 
             {/* Pro (Highlighted) */}
-            <div className="bg-white p-8 rounded-2xl shadow-xl border-2 border-orange-500 relative transform md:-translate-y-4">
-               <div className="absolute top-0 right-0 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">MAIS VENDIDO</div>
-               <h3 className="font-bold text-xl text-orange-600">Plano Pro</h3>
+            <div className="bg-white p-6 rounded-2xl shadow-xl border-2 border-orange-500 relative transform md:-translate-y-4 flex flex-col">
+               <div className="absolute top-0 right-0 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg rounded-tr-lg">MAIS VENDIDO</div>
+               <h3 className="font-bold text-lg text-orange-600">Plano Pro</h3>
                <div className="my-4">
-                 <span className="text-4xl font-extrabold">R$ 59</span>
-                 <span className="text-gray-500">/mês</span>
+                 <span className="text-3xl font-extrabold">R$ 59</span>
+                 <span className="text-gray-500 text-sm">/mês</span>
                </div>
-               <p className="text-gray-500 text-sm mb-6">Para quem quer crescer de verdade e profissionalizar o delivery.</p>
-               <button onClick={onStart} className="w-full py-3 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 mb-6 shadow-lg shadow-orange-200">
-                 Quero Vender Mais
+               <p className="text-gray-500 text-sm mb-6 flex-1">O "Carro Chefe". Restaurantes e deliverys que precisam de liberdade total.</p>
+               <button onClick={onStart} className="w-full py-2 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 mb-6 shadow-lg shadow-orange-200 text-sm">
+                 Quero Ilimitado
                </button>
                <ul className="space-y-3 text-sm text-gray-600">
-                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> <strong>Produtos Ilimitados</strong></li>
-                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> <strong>IA Ilimitada</strong> (Posts, Stories, Reels)</li>
-                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> Cardápio Digital</li>
-                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> Suporte VIP</li>
+                 <li className="flex gap-2"><CheckCircle size={16} className="text-green-500 flex-shrink-0" /> <strong>Produtos Ilimitados</strong></li>
+                 <li className="flex gap-2"><CheckCircle size={16} className="text-green-500 flex-shrink-0" /> <strong>IA Ilimitada</strong></li>
+                 <li className="flex gap-2"><CheckCircle size={16} className="text-green-500 flex-shrink-0" /> IA Completa (+ Respostas)</li>
+                 <li className="flex gap-2"><CheckCircle size={16} className="text-green-500 flex-shrink-0" /> Suporte VIP</li>
                </ul>
             </div>
 
             {/* Agency */}
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
-               <h3 className="font-bold text-xl text-gray-900">Agência</h3>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col">
+               <h3 className="font-bold text-lg text-gray-900">Agência</h3>
                <div className="my-4">
-                 <span className="text-4xl font-extrabold">R$ 99</span>
-                 <span className="text-gray-500">/mês</span>
+                 <span className="text-3xl font-extrabold">R$ 99</span>
+                 <span className="text-gray-500 text-sm">/mês</span>
                </div>
-               <p className="text-gray-500 text-sm mb-6">Para social media managers que cuidam de várias contas.</p>
-               <button onClick={onStart} className="w-full py-3 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50 mb-6">
+               <p className="text-gray-500 text-sm mb-6 flex-1">Para Social Media Managers e Agências revenderem tecnologia.</p>
+               <button onClick={onStart} className="w-full py-2 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50 mb-6 text-sm">
                  Falar com Consultor
                </button>
                <ul className="space-y-3 text-sm text-gray-600">
-                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> Multi-clientes</li>
-                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> <strong>Marca Branca (White Label)</strong></li>
-                 <li className="flex gap-2"><CheckCircle size={18} className="text-green-500 flex-shrink-0" /> Tudo do Plano Pro</li>
+                 <li className="flex gap-2"><CheckCircle size={16} className="text-green-500 flex-shrink-0" /> <strong>Marca Branca (Sem Logo)</strong></li>
+                 <li className="flex gap-2"><CheckCircle size={16} className="text-green-500 flex-shrink-0" /> Multi-clientes (Gestão)</li>
+                 <li className="flex gap-2"><CheckCircle size={16} className="text-green-500 flex-shrink-0" /> Tudo do Plano Pro</li>
                </ul>
             </div>
           </div>
