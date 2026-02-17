@@ -10,7 +10,8 @@ import {
   Menu as MenuIcon, User, Copy, Share2, 
   Trash2, Plus, MessageCircle, Instagram, ExternalLink,
   Smartphone, Zap, ArrowRight, CheckCircle, Lock, AlertTriangle,
-  SearchX, Mail, Image as ImageIcon, MapPin, Phone
+  SearchX, Mail, Image as ImageIcon, MapPin, Phone,
+  QrCode, X, Download
 } from 'lucide-react';
 
 // Declare Stripe on window since we loaded it via script tag
@@ -483,19 +484,62 @@ const Dashboard = ({
   onUpgrade: () => void,
   products: Product[]
 }) => {
+  const [showQrModal, setShowQrModal] = useState(false);
   const tier = profile.subscription?.tier || PlanTier.FREE;
   const limits = PLAN_CONFIG[tier].limits;
   const isLimited = tier !== PlanTier.PRO && tier !== PlanTier.AGENCY;
   const percentUsed = isLimited ? Math.min((generatedCount / limits.generations) * 100, 100) : 0;
+  
+  const menuUrl = `${window.location.origin}/#/m/${profile.slug}`;
 
   const handleCopyPublicLink = () => {
-     const fullUrl = `${window.location.origin}/#/m/${profile.slug}`;
-     navigator.clipboard.writeText(fullUrl);
+     navigator.clipboard.writeText(menuUrl);
      alert("Link público copiado! Envie para seus clientes.");
   };
 
   return (
     <div className="space-y-6">
+      {showQrModal && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl p-6 md:p-8 max-w-sm w-full text-center shadow-2xl relative animate-fade-in-up">
+             <button 
+               onClick={() => setShowQrModal(false)} 
+               className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 bg-gray-100 rounded-full p-1"
+             >
+               <X size={20} />
+             </button>
+             
+             <div className="mb-4 flex flex-col items-center">
+               <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mb-4">
+                 <QrCode size={32} />
+               </div>
+               <h3 className="text-xl font-bold text-gray-900">Seu QR Code</h3>
+               <p className="text-gray-500 text-sm">Imprima e cole nas mesas para facilitar o pedido.</p>
+             </div>
+             
+             <div className="bg-white p-4 border-2 border-gray-900 rounded-xl inline-block mb-6 shadow-lg transform hover:scale-105 transition-transform duration-300">
+               <img 
+                 src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&color=000000&bgcolor=ffffff&data=${encodeURIComponent(menuUrl)}`} 
+                 alt="QR Code" 
+                 className="w-48 h-48 md:w-56 md:h-56"
+               />
+             </div>
+
+             <div className="grid grid-cols-1 gap-2">
+               <a 
+                 href={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&format=png&data=${encodeURIComponent(menuUrl)}`} 
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 className="flex-1 bg-gray-900 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-black transition-colors"
+               >
+                 <Download size={18}/> Baixar Alta Qualidade
+               </a>
+               <p className="text-xs text-gray-400 mt-2">Dica: Baixe a imagem e insira no seu design ou imprima direto.</p>
+             </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Olá, {profile.name}! 👋</h2>
@@ -503,9 +547,12 @@ const Dashboard = ({
             Plano atual: <strong className="text-orange-600">{PLAN_CONFIG[tier].name}</strong>
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+           <button onClick={() => setShowQrModal(true)} className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-full text-sm font-bold hover:bg-gray-50 transition-colors flex items-center gap-2">
+             <QrCode size={16} /> QR Code
+           </button>
            <button onClick={handleCopyPublicLink} className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-full text-sm font-bold hover:bg-gray-50 transition-colors flex items-center gap-2">
-             <Share2 size={16} /> Compartilhar Cardápio
+             <Share2 size={16} /> Compartilhar Link
           </button>
           {tier === PlanTier.FREE && (
             <button onClick={onUpgrade} className="bg-orange-100 text-orange-700 px-4 py-2 rounded-full text-sm font-bold hover:bg-orange-200 transition-colors">
