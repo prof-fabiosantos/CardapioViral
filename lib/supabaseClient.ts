@@ -3,16 +3,21 @@ import { createClient } from '@supabase/supabase-js';
 declare const process: any;
 
 // As variáveis de ambiente serão injetadas pelo Vite (ver vite.config.ts)
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+// Se a injeção falhar ou estiver vazia, usamos uma string vazia como fallback inicial.
+const envUrl = process.env.VITE_SUPABASE_URL;
+const envKey = process.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('⚠️ Supabase URL ou Key não encontradas. Verifique suas variáveis de ambiente.');
+// Verifica se os valores existem e não são vazios
+const hasUrl = typeof envUrl === 'string' && envUrl.trim().length > 0;
+const hasKey = typeof envKey === 'string' && envKey.trim().length > 0;
+
+if (!hasUrl || !hasKey) {
+  console.warn('⚠️ Supabase URL ou Key não encontradas. Usando modo offline/placeholder.');
 }
 
-// Use fallback values to prevent the app from crashing completely if config is missing.
-// This allows the UI to render (and show auth errors) instead of a white screen.
-const validUrl = supabaseUrl && supabaseUrl.length > 0 ? supabaseUrl : 'https://placeholder.supabase.co';
-const validKey = supabaseAnonKey && supabaseAnonKey.length > 0 ? supabaseAnonKey : 'placeholder-key';
+// Fallback values para evitar crash do createClient (que lança erro se URL for vazia)
+// 'https://placeholder.supabase.co' é uma URL sintaticamente válida que permite o app carregar.
+const validUrl = hasUrl ? envUrl : 'https://placeholder.supabase.co';
+const validKey = hasKey ? envKey : 'placeholder-key';
 
 export const supabase = createClient(validUrl, validKey);
