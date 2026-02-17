@@ -1,3 +1,4 @@
+
 export enum BusinessCategory {
   RESTAURANTE = 'Restaurante',
   BAR = 'Bar/Boteco',
@@ -18,7 +19,8 @@ export enum ToneOfVoice {
 }
 
 export interface Product {
-  id: string;
+  id?: string; // Optional because Supabase generates it
+  user_id?: string;
   name: string;
   description: string;
   price: number;
@@ -40,7 +42,10 @@ export interface Subscription {
 }
 
 export interface BusinessProfile {
+  id?: string;
+  user_id?: string;
   name: string;
+  slug: string; // URL identifier
   city: string;
   category: BusinessCategory;
   tone: ToneOfVoice;
@@ -53,7 +58,8 @@ export interface BusinessProfile {
 }
 
 export interface GeneratedContent {
-  id: string;
+  id?: string;
+  user_id?: string;
   type: 'FEED' | 'STORY' | 'REELS' | 'WHATSAPP' | 'REPLY';
   hook: string;
   caption: string;
@@ -61,12 +67,14 @@ export interface GeneratedContent {
   hashtags: string[];
   script?: string; // For Reels
   suggestion?: string; // Visual suggestion/Image Prompt
-  createdAt: number;
+  createdAt?: number; // timestamp
+  created_at?: string; // Supabase timestamp
   isFavorite?: boolean;
 }
 
 export enum AppView {
   LANDING = 'LANDING',
+  AUTH = 'AUTH',
   ONBOARDING = 'ONBOARDING',
   DASHBOARD = 'DASHBOARD',
   PRODUCTS = 'PRODUCTS',

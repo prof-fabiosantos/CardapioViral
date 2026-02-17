@@ -11,12 +11,13 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     define: {
       // Define process.env variables so they are replaced at build time
-      // This fixes the "process is not defined" error and allows using process.env.API_KEY
       'process.env.API_KEY': JSON.stringify(env.VITE_GOOGLE_API_KEY || env.API_KEY),
       'process.env.VITE_STRIPE_PUBLIC_KEY': JSON.stringify(env.VITE_STRIPE_PUBLIC_KEY),
       'process.env.VITE_STRIPE_PRICE_SOLO': JSON.stringify(env.VITE_STRIPE_PRICE_SOLO),
       'process.env.VITE_STRIPE_PRICE_PRO': JSON.stringify(env.VITE_STRIPE_PRICE_PRO),
       'process.env.VITE_STRIPE_PRICE_AGENCY': JSON.stringify(env.VITE_STRIPE_PRICE_AGENCY),
+      'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
+      'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
     },
     build: {
       outDir: 'dist',
