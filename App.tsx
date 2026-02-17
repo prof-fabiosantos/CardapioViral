@@ -467,6 +467,10 @@ const Landing = ({ onStart, onLogin }: { onStart: () => void, onLogin: () => voi
                <ChefHat size={24} /> <span>Cardápio Viral</span>
             </div>
             <p className="mb-4 max-w-xs">A plataforma #1 de Marketing com Inteligência Artificial para pequenos negócios de alimentação no Brasil.</p>
+            <p className="mb-4 text-sm">
+               <span className="block font-bold text-white mb-1">Fale com a gente:</span>
+               <a href="mailto:decentralizedtech.com.br@gmail.com" className="hover:text-white transition-colors">decentralizedtech.com.br@gmail.com</a>
+            </p>
             <div className="flex gap-4">
                <Instagram className="hover:text-white cursor-pointer" size={24}/>
                <MessageCircle className="hover:text-white cursor-pointer" size={24}/>
@@ -485,7 +489,7 @@ const Landing = ({ onStart, onLogin }: { onStart: () => void, onLogin: () => voi
             <ul className="space-y-2 text-sm">
               <li><a href="#" className="hover:text-white">Termos de Uso</a></li>
               <li><a href="#" className="hover:text-white">Privacidade</a></li>
-              <li><a href="#" className="hover:text-white">Contato</a></li>
+              <li><a href="mailto:decentralizedtech.com.br@gmail.com" className="hover:text-white">Contato</a></li>
             </ul>
           </div>
         </div>
