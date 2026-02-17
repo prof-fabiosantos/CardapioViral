@@ -13,7 +13,7 @@ import {
   Smartphone, Zap, ArrowRight, CheckCircle, Lock, AlertTriangle,
   SearchX, Mail, Image as ImageIcon, MapPin, Phone,
   QrCode, X, Download, Upload, Loader2, ChevronDown, ChevronUp, Star, Clock, DollarSign, RefreshCw,
-  MoreHorizontal, Heart, Send, Search, Filter, ShoppingBag
+  MoreHorizontal, Heart, Send, Search, Filter, ShoppingBag, Store, ChevronLeft
 } from 'lucide-react';
 
 // Declare Stripe on window since we loaded it via script tag
@@ -49,7 +49,8 @@ const Layout = ({
   ];
 
   // Views that don't use the Sidebar layout
-  if (currentView === AppView.LANDING || 
+  if (currentView === AppView.MAIN_HUB ||
+      currentView === AppView.LANDING || 
       currentView === AppView.AUTH || 
       currentView === AppView.ONBOARDING || 
       currentView === AppView.MENU_PREVIEW ||
@@ -164,7 +165,65 @@ const Layout = ({
   );
 };
 
-const Landing = ({ onStart, onLogin, onDiscover }: { onStart: () => void, onLogin: () => void, onDiscover: () => void }) => {
+// --- MAIN HUB COMPONENT (NEW ROOT LANDING) ---
+const MainHub = ({ onClient, onBusiness }: { onClient: () => void, onBusiness: () => void }) => {
+  return (
+    <div className="min-h-screen flex flex-col md:flex-row font-sans relative">
+      {/* Lado do Cliente (Quero Comer) */}
+      <div 
+        onClick={onClient}
+        className="flex-1 relative group cursor-pointer overflow-hidden border-b-8 md:border-b-0 md:border-r-8 border-white"
+      >
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
+        <div className="absolute inset-0 bg-black/50 group-hover:bg-black/60 transition-colors"></div>
+        
+        <div className="relative z-10 h-full flex flex-col justify-center items-center text-center p-8">
+           <div className="bg-white/20 backdrop-blur-md p-4 rounded-full mb-6 group-hover:scale-110 transition-transform">
+              <ShoppingBag className="text-white w-12 h-12 md:w-16 md:h-16" />
+           </div>
+           <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4 drop-shadow-lg">Estou com Fome</h2>
+           <p className="text-lg md:text-xl text-white/90 max-w-md mb-8 drop-shadow-md">
+              Encontre comida boa perto de você. Explore cardápios de restaurantes locais e peça pelo WhatsApp.
+           </p>
+           <button className="bg-white text-gray-900 font-bold py-3 px-8 rounded-full text-lg shadow-lg hover:bg-gray-100 transition-all flex items-center gap-2">
+              Buscar Comida <ArrowRight size={20} />
+           </button>
+        </div>
+      </div>
+
+      {/* Lado do Restaurante (Sou Restaurante) */}
+      <div 
+        onClick={onBusiness}
+        className="flex-1 relative group cursor-pointer overflow-hidden"
+      >
+         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1556910103-1c02745a30bf?auto=format&fit=crop&q=80')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110"></div>
+         <div className="absolute inset-0 bg-orange-600/90 group-hover:bg-orange-600/95 transition-colors"></div>
+
+         <div className="relative z-10 h-full flex flex-col justify-center items-center text-center p-8">
+            <div className="bg-white/20 backdrop-blur-md p-4 rounded-full mb-6 group-hover:scale-110 transition-transform">
+               <Store className="text-white w-12 h-12 md:w-16 md:h-16" />
+            </div>
+            <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4 drop-shadow-lg">Sou Restaurante</h2>
+            <p className="text-lg md:text-xl text-white/90 max-w-md mb-8 drop-shadow-md">
+               Crie seu cardápio digital, use IA para gerar marketing e venda mais. Tudo automático.
+            </p>
+            <button className="bg-gray-900 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg hover:bg-black transition-all flex items-center gap-2">
+               Criar Cardápio <Sparkles size={20} />
+            </button>
+         </div>
+      </div>
+
+      {/* Logo Centralizado (Overlay) */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 bg-white/90 backdrop-blur-sm px-6 py-2 rounded-full shadow-lg flex items-center gap-2 pointer-events-none">
+         <ChefHat className="text-orange-600" size={24} />
+         <span className="font-bold text-gray-900 text-lg tracking-tight">Cardápio Viral</span>
+      </div>
+    </div>
+  );
+};
+
+// --- BUSINESS LANDING PAGE (SOU RESTAURANTE) ---
+const Landing = ({ onStart, onLogin, onBack }: { onStart: () => void, onLogin: () => void, onBack: () => void }) => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);
@@ -197,21 +256,19 @@ const Landing = ({ onStart, onLogin, onDiscover }: { onStart: () => void, onLogi
       {/* Navbar */}
       <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-md z-50 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2 text-orange-600 font-bold text-xl">
+          <div className="flex items-center gap-2 text-orange-600 font-bold text-xl cursor-pointer" onClick={onBack}>
             <ChefHat size={32} />
             <span>Cardápio Viral</span>
           </div>
           <div className="flex items-center gap-4">
-             {/* New Button for Discovery */}
-            <button onClick={onDiscover} className="text-gray-900 font-bold hover:text-orange-600 px-3 py-2 flex items-center gap-2 bg-gray-100 rounded-full text-sm">
-              <Search size={16} /> Quero Comer
+            <button onClick={onBack} className="text-gray-500 text-sm hover:text-gray-900 hidden md:flex items-center gap-1">
+               <ChevronLeft size={16}/> Voltar
             </button>
-
-            <button onClick={onLogin} className="text-gray-600 font-medium hover:text-orange-600 px-4 py-2 hidden md:block">
-              Sou Restaurante
+            <button onClick={onLogin} className="text-gray-600 font-medium hover:text-orange-600 px-4 py-2 text-sm md:text-base">
+              Já tenho conta
             </button>
-            <button onClick={onStart} className="bg-orange-600 text-white px-5 py-2 rounded-full font-bold hover:bg-orange-700 transition-transform hover:scale-105 shadow-lg shadow-orange-200">
-              Criar Cardápio
+            <button onClick={onStart} className="bg-orange-600 text-white px-4 py-2 md:px-5 md:py-2 rounded-full font-bold hover:bg-orange-700 transition-transform hover:scale-105 shadow-lg shadow-orange-200 text-sm md:text-base">
+              Começar Agora
             </button>
           </div>
         </div>
@@ -237,9 +294,9 @@ const Landing = ({ onStart, onLogin, onDiscover }: { onStart: () => void, onLogi
               >
                 Criar Minha Loja Grátis
               </button>
-              <button onClick={onDiscover} className="bg-white text-gray-900 border-2 border-gray-900 text-lg font-bold px-8 py-4 rounded-xl hover:bg-gray-50 transition-colors flex items-center gap-2">
-                 <Search size={20}/> Buscar Comida
-              </button>
+              <div className="flex items-center gap-2 text-gray-500 text-sm px-4 justify-center md:justify-start">
+                 <CheckCircle size={16} className="text-green-500" /> Sem cartão necessário
+              </div>
             </div>
           </div>
           
@@ -329,8 +386,8 @@ const DiscoveryView = ({ onBack, onSelectStore }: { onBack: () => void, onSelect
                 <div onClick={onBack} className="flex items-center gap-2 text-white font-bold cursor-pointer hover:opacity-80">
                    <ChefHat /> Cardápio Viral
                 </div>
-                <button onClick={onBack} className="text-white/80 hover:text-white text-sm font-bold">
-                   Sou Restaurante
+                <button onClick={onBack} className="text-white/80 hover:text-white text-sm font-bold flex items-center gap-1">
+                   <ChevronLeft size={16}/> Voltar
                 </button>
              </div>
              
@@ -1100,7 +1157,7 @@ const MenuPublicView = ({ profile, products }: { profile: BusinessProfile | null
 
 // 2. Updated App Component to handle new Routing
 const App = () => {
-  const [view, setView] = useState<AppView>(AppView.LANDING);
+  const [view, setView] = useState<AppView>(AppView.MAIN_HUB); // Default to MAIN_HUB
   const [session, setSession] = useState<any>(null);
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -1132,6 +1189,10 @@ const App = () => {
       } else if (window.location.hash === '#/discovery') {
          setView(AppView.DISCOVERY);
          setLoading(false);
+      } else if (!session && window.location.hash === '') {
+         // Se não estiver logado e sem hash, mostra o Hub
+         setView(AppView.MAIN_HUB);
+         setLoading(false);
       }
     };
 
@@ -1142,14 +1203,18 @@ const App = () => {
     }
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+  }, [session]);
 
   const checkAuth = async () => {
     setLoading(true);
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session) fetchUserData(session.user.id);
-      else setLoading(false);
+      if (session) {
+         fetchUserData(session.user.id);
+      } else {
+         if (!window.location.hash) setView(AppView.MAIN_HUB);
+         setLoading(false);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -1160,7 +1225,7 @@ const App = () => {
         if (!window.location.hash.startsWith('#/m/') && window.location.hash !== '#/discovery') {
            setProfile(null);
            setProducts([]);
-           setView(AppView.LANDING);
+           setView(AppView.MAIN_HUB);
         }
         setLoading(false);
       }
@@ -1189,7 +1254,7 @@ const App = () => {
            setAnalyticsStats(stats);
         }
 
-        if (view === AppView.LANDING || view === AppView.AUTH) setView(AppView.DASHBOARD);
+        if (view === AppView.LANDING || view === AppView.AUTH || view === AppView.MAIN_HUB) setView(AppView.DASHBOARD);
       } else {
         setView(AppView.ONBOARDING);
       }
@@ -1211,7 +1276,7 @@ const App = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setView(AppView.LANDING);
+    setView(AppView.MAIN_HUB);
     window.location.hash = '';
   };
 
@@ -1226,10 +1291,18 @@ const App = () => {
   // Routing
   const renderView = () => {
     switch (view) {
+      case AppView.MAIN_HUB:
+         return (
+            <MainHub 
+               onClient={() => { setView(AppView.DISCOVERY); window.location.hash = '#/discovery'; }}
+               onBusiness={() => setView(AppView.LANDING)}
+            />
+         );
+
       case AppView.DISCOVERY:
          return (
             <DiscoveryView 
-               onBack={() => { window.location.hash = ''; setView(AppView.LANDING); }} 
+               onBack={() => { window.location.hash = ''; setView(AppView.MAIN_HUB); }} 
                onSelectStore={(slug) => { window.location.hash = `#/m/${slug}`; }}
             />
          );
@@ -1275,10 +1348,11 @@ const App = () => {
           return <AuthScreen onAuthSuccess={() => {}} />;
 
       default:
+        // Caso de fallback, mas idealmente não deve cair aqui se a lógica do MAIN_HUB estiver correta
         return <Landing 
           onStart={() => setView(AppView.AUTH)} 
           onLogin={() => setView(AppView.AUTH)} 
-          onDiscover={() => { setView(AppView.DISCOVERY); window.location.hash = '#/discovery'; }}
+          onBack={() => setView(AppView.MAIN_HUB)}
         />;
     }
   };

@@ -90,7 +90,8 @@ export interface GeneratedContent {
 }
 
 export enum AppView {
-  LANDING = 'LANDING',
+  MAIN_HUB = 'MAIN_HUB', // Nova tela principal
+  LANDING = 'LANDING', // Landing Page para Restaurantes
   AUTH = 'AUTH',
   ONBOARDING = 'ONBOARDING',
   DASHBOARD = 'DASHBOARD',
@@ -98,5 +99,5 @@ export enum AppView {
   GENERATOR = 'GENERATOR',
   MENU_PREVIEW = 'MENU_PREVIEW',
   BILLING = 'BILLING',
-  DISCOVERY = 'DISCOVERY' // Nova view
+  DISCOVERY = 'DISCOVERY'
 }
