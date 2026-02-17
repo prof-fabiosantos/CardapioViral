@@ -731,8 +731,13 @@ const ContentGenerator = ({
          setGenerated(results);
       }
 
-    } catch (e) {
-      alert("Erro ao gerar conteúdo.");
+    } catch (e: any) {
+      // Tratamento de erro específico para cotas e limites
+      if (e.message?.includes('429') || e.status === 429 || e.toString().includes('Quota exceeded')) {
+         alert("O Chef Viral está com muitas demandas no momento! 👨‍🍳🔥\n\nAguarde cerca de 30 segundos e tente novamente.");
+      } else {
+         alert("Erro ao gerar conteúdo: " + (e.message || "Tente novamente."));
+      }
       console.error(e);
     } finally {
       setLoading(false);

@@ -16,7 +16,8 @@ const getAiInstance = () => {
     return new GoogleGenAI({ apiKey });
 };
 
-const MODEL_NAME = "gemini-2.0-flash"; // Using a stable model name that exists in standard tier
+// Atualizado para o modelo mais recente recomendado
+const MODEL_NAME = "gemini-3-flash-preview"; 
 
 // Schema for structured output
 const contentSchema: Schema = {
@@ -118,8 +119,12 @@ export const generateMarketingContent = async (
       type: item.type || (generationType === 'RESPOSTA' ? 'REPLY' : 'FEED')
     }));
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Error:", error);
-    throw error; // Re-throw to be handled by UI
+    // Verificar se é erro de cota (429) e lançar erro amigável
+    if (error.status === 429 || error.message?.includes('429') || error.message?.includes('Quota exceeded')) {
+        throw new Error("Muitas solicitações ao mesmo tempo. Aguarde 30 segundos.");
+    }
+    throw error;
   }
 };
