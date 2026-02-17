@@ -164,10 +164,7 @@ const Layout = ({
   );
 };
 
-// ... Landing remains partially the same, updating navigation link ...
-
 const Landing = ({ onStart, onLogin, onDiscover }: { onStart: () => void, onLogin: () => void, onDiscover: () => void }) => {
-  // ... existing code ...
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);
@@ -248,7 +245,6 @@ const Landing = ({ onStart, onLogin, onDiscover }: { onStart: () => void, onLogi
           
           {/* Image Collage */}
           <div className="flex-1 relative z-0">
-             {/* ... same collage as before ... */}
               <div className="relative w-full max-w-lg mx-auto">
                <div className="absolute top-0 -left-4 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
                <div className="absolute top-0 -right-4 w-72 h-72 bg-orange-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
@@ -268,15 +264,7 @@ const Landing = ({ onStart, onLogin, onDiscover }: { onStart: () => void, onLogi
           </div>
         </div>
       </section>
-      
-      {/* ... Rest of Landing Sections (Vantagens, Como Abrir, Planos, FAQ, Footer) ... */}
-      {/* Included implicitly for brevity, assuming standard footer/sections are there */}
-       <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4">
-            {/* ... Vantagens content ... */}
-        </div>
-       </section>
-       {/* ... Footer ... */}
+
        <footer className="bg-gray-900 text-gray-400 py-12">
         <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
@@ -499,7 +487,572 @@ const DiscoveryView = ({ onBack, onSelectStore }: { onBack: () => void, onSelect
   );
 };
 
-// ... AuthScreen, Onboarding, Dashboard, GeneratorView, ProductsManager, BillingView, MenuPublicView remain ...
+// --- AUTH COMPONENT ---
+const AuthScreen = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({ 
+       email,
+       options: {
+         emailRedirectTo: window.location.origin
+       }
+    });
+    if (error) alert(error.message);
+    else setSent(true);
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-gray-100">
+        <div className="text-center mb-8">
+           <div className="inline-block p-3 bg-orange-100 rounded-full text-orange-600 mb-4">
+             <ChefHat size={32} />
+           </div>
+           <h2 className="text-2xl font-bold text-gray-900">Acesse sua conta</h2>
+           <p className="text-gray-500">Digite seu e-mail para entrar ou criar conta.</p>
+        </div>
+
+        {sent ? (
+          <div className="text-center bg-green-50 p-6 rounded-xl border border-green-100">
+             <Mail className="mx-auto text-green-600 mb-2" size={32} />
+             <h3 className="font-bold text-green-800">Link enviado!</h3>
+             <p className="text-sm text-green-700">Verifique seu e-mail para acessar o sistema.</p>
+             <button onClick={() => setSent(false)} className="mt-4 text-sm text-green-800 underline">Tentar outro e-mail</button>
+          </div>
+        ) : (
+          <form onSubmit={handleLogin} className="space-y-4">
+             <div>
+               <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+               <input 
+                 type="email" 
+                 required 
+                 className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                 placeholder="seu@email.com"
+                 value={email}
+                 onChange={e => setEmail(e.target.value)}
+               />
+             </div>
+             <button 
+               disabled={loading}
+               className="w-full bg-orange-600 text-white font-bold py-3 rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center gap-2"
+             >
+               {loading ? <Loader2 className="animate-spin" /> : 'Receber Link de Acesso'}
+             </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// --- ONBOARDING COMPONENT ---
+const Onboarding = ({ onComplete }: { onComplete: (p: BusinessProfile, products: Product[]) => void }) => {
+   const [step, setStep] = useState(1);
+   const [formData, setFormData] = useState<Partial<BusinessProfile>>({
+     name: '',
+     city: '',
+     category: BusinessCategory.OUTRO,
+     tone: ToneOfVoice.CASUAL,
+     phone: ''
+   });
+   const [loading, setLoading] = useState(false);
+
+   const handleSubmit = async () => {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const slug = formData.name?.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.floor(Math.random() * 1000);
+      
+      const newProfile: BusinessProfile = {
+         user_id: user.id,
+         name: formData.name || '',
+         city: formData.city || '',
+         category: formData.category || BusinessCategory.OUTRO,
+         tone: formData.tone || ToneOfVoice.CASUAL,
+         phone: formData.phone || '',
+         slug,
+         instagram: '',
+         themeColor: '#ea580c',
+         subscription: { tier: PlanTier.FREE, status: 'active', periodEnd: Date.now() + 30*24*60*60*1000 }
+      };
+
+      const { data: profile, error } = await supabase.from('profiles').insert(newProfile).select().single();
+
+      if (error) {
+         console.error(error);
+         alert("Erro ao criar perfil.");
+         setLoading(false);
+         return;
+      }
+
+      // Add sample products
+      const sampleProducts = MOCK_PRODUCTS.map(p => ({ ...p, user_id: user.id }));
+      // Remove IDs to let DB generate them
+      const productsToInsert = sampleProducts.map(({ id, ...rest }) => rest);
+      
+      const { data: products } = await supabase.from('products').insert(productsToInsert).select();
+      
+      onComplete(profile as BusinessProfile, products as Product[] || []);
+   };
+
+   return (
+     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+       <div className="bg-white max-w-lg w-full p-8 rounded-2xl shadow-xl">
+          <div className="mb-6">
+             <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-bold text-orange-600 uppercase">Passo {step} de 2</span>
+                <div className="flex gap-1">
+                   <div className={`h-1 w-12 rounded-full ${step >= 1 ? 'bg-orange-600' : 'bg-gray-200'}`}></div>
+                   <div className={`h-1 w-12 rounded-full ${step >= 2 ? 'bg-orange-600' : 'bg-gray-200'}`}></div>
+                </div>
+             </div>
+             <h2 className="text-2xl font-bold text-gray-900">
+               {step === 1 ? 'Sobre o seu Negócio' : 'Personalidade da Marca'}
+             </h2>
+          </div>
+
+          {step === 1 ? (
+             <div className="space-y-4">
+                <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Estabelecimento</label>
+                   <input className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-orange-500" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Ex: Pizzaria do João" />
+                </div>
+                <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                   <input className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-orange-500" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} placeholder="Ex: São Paulo" />
+                </div>
+                <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                   <select className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-orange-500" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value as BusinessCategory})}>
+                      {Object.values(BusinessCategory).map(c => <option key={c} value={c}>{c}</option>)}
+                   </select>
+                </div>
+                <button onClick={() => setStep(2)} className="w-full bg-orange-600 text-white font-bold py-3 rounded-lg mt-4 hover:bg-orange-700">Próximo</button>
+             </div>
+          ) : (
+             <div className="space-y-4">
+                <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp para Pedidos</label>
+                   <input className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-orange-500" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="Ex: 11999999999" />
+                </div>
+                <div>
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Tom de Voz da Marca</label>
+                   <div className="grid grid-cols-1 gap-2">
+                      {Object.values(ToneOfVoice).map(tone => (
+                         <div key={tone} 
+                           onClick={() => setFormData({...formData, tone})}
+                           className={`p-3 border rounded-lg cursor-pointer transition-all ${formData.tone === tone ? 'border-orange-500 bg-orange-50' : 'hover:bg-gray-50'}`}
+                         >
+                            <div className="font-medium text-sm">{tone}</div>
+                         </div>
+                      ))}
+                   </div>
+                </div>
+                <button onClick={handleSubmit} disabled={loading} className="w-full bg-orange-600 text-white font-bold py-3 rounded-lg mt-4 hover:bg-orange-700 flex justify-center">
+                   {loading ? <Loader2 className="animate-spin" /> : 'Finalizar Cadastro'}
+                </button>
+             </div>
+          )}
+       </div>
+     </div>
+   );
+};
+
+// --- DASHBOARD COMPONENT ---
+const Dashboard = ({ 
+  profile, 
+  generatedCount, 
+  analytics, 
+  products,
+  onQuickAction,
+  onUpgrade
+}: { 
+  profile: BusinessProfile, 
+  generatedCount: number, 
+  analytics: { visits: number, clicks: number },
+  products: Product[],
+  onQuickAction: () => void,
+  onUpgrade: () => void
+}) => {
+   const plan = PLAN_CONFIG[profile.subscription?.tier || PlanTier.FREE];
+   const limit = plan.limits.generations;
+   const usagePercent = Math.min((generatedCount / limit) * 100, 100);
+
+   return (
+      <div className="space-y-6">
+         <h1 className="text-2xl font-bold text-gray-900">Olá, {profile.name} 👋</h1>
+         
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+               <div className="flex justify-between items-start mb-4">
+                  <div>
+                     <p className="text-gray-500 text-sm font-medium">Gerações de IA (Mês)</p>
+                     <h3 className="text-3xl font-bold text-gray-900 mt-1">{generatedCount} <span className="text-sm text-gray-400 font-normal">/ {limit}</span></h3>
+                  </div>
+                  <div className="p-2 bg-purple-100 text-purple-600 rounded-lg"><Sparkles size={20}/></div>
+               </div>
+               <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
+                  <div className="bg-purple-600 h-2 rounded-full transition-all" style={{width: `${usagePercent}%`}}></div>
+               </div>
+               {usagePercent >= 100 && (
+                  <button onClick={onUpgrade} className="text-xs font-bold text-orange-600 hover:underline">Fazer Upgrade</button>
+               )}
+            </div>
+
+            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+               <div className="flex justify-between items-start mb-4">
+                  <div>
+                     <p className="text-gray-500 text-sm font-medium">Visitas no Cardápio (7d)</p>
+                     <h3 className="text-3xl font-bold text-gray-900 mt-1">{analytics.visits}</h3>
+                  </div>
+                  <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><ExternalLink size={20}/></div>
+               </div>
+               <div className="text-xs text-green-600 font-medium flex items-center gap-1">
+                  <ArrowRight size={12} className="rotate-[-45deg]"/> Cardápio Ativo
+               </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+               <div className="flex justify-between items-start mb-4">
+                  <div>
+                     <p className="text-gray-500 text-sm font-medium">Cliques no WhatsApp</p>
+                     <h3 className="text-3xl font-bold text-gray-900 mt-1">{analytics.clicks}</h3>
+                  </div>
+                  <div className="p-2 bg-green-100 text-green-600 rounded-lg"><MessageCircle size={20}/></div>
+               </div>
+               <div className="text-xs text-gray-500">Conversão estimada: {analytics.visits > 0 ? ((analytics.clicks/analytics.visits)*100).toFixed(1) : 0}%</div>
+            </div>
+         </div>
+
+         <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-2xl p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-lg">
+            <div>
+               <h2 className="text-2xl font-bold mb-2">Crie conteúdo vendedor agora!</h2>
+               <p className="text-orange-100 max-w-md">Nossa IA analisa seus produtos ({products.length} cadastrados) e cria posts para o Instagram em segundos.</p>
+            </div>
+            <button onClick={onQuickAction} className="bg-white text-orange-600 px-6 py-3 rounded-xl font-bold hover:bg-orange-50 shadow-md transition-transform hover:scale-105 flex items-center gap-2">
+               <Sparkles size={20} /> Gerar Post Mágico
+            </button>
+         </div>
+      </div>
+   );
+};
+
+// --- PRODUCTS MANAGER COMPONENT ---
+const ProductsManager = ({ products, profile, onAdd, onDelete, onUpgrade }: { products: Product[], profile: BusinessProfile, onAdd: (p: Product) => void, onDelete: (id: string) => void, onUpgrade: () => void }) => {
+   const [isModalOpen, setIsModalOpen] = useState(false);
+   const [newProduct, setNewProduct] = useState<Partial<Product>>({ name: '', price: 0, description: '', category: 'Outros' });
+   const [loading, setLoading] = useState(false);
+
+   const plan = PLAN_CONFIG[profile.subscription?.tier || PlanTier.FREE];
+   const canAdd = products.length < plan.limits.products;
+
+   const handleSave = async () => {
+      if (!newProduct.name || !newProduct.price) return alert("Preencha nome e preço");
+      setLoading(true);
+
+      const productToSave = {
+         ...newProduct,
+         user_id: profile.user_id,
+         image_url: newProduct.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=60' // default placeholder
+      };
+
+      const { data, error } = await supabase.from('products').insert(productToSave).select().single();
+      
+      if (error) {
+         console.error(error);
+         alert("Erro ao salvar produto.");
+      } else {
+         onAdd(data as Product);
+         setIsModalOpen(false);
+         setNewProduct({ name: '', price: 0, description: '', category: 'Outros' });
+      }
+      setLoading(false);
+   };
+
+   const handleDelete = async (id: string) => {
+      if (!confirm("Tem certeza?")) return;
+      const { error } = await supabase.from('products').delete().eq('id', id);
+      if (!error) onDelete(id);
+   };
+
+   return (
+      <div className="space-y-6">
+         <div className="flex justify-between items-center">
+            <div>
+               <h1 className="text-2xl font-bold text-gray-900">Seu Cardápio</h1>
+               <p className="text-gray-500">{products.length} produtos cadastrados</p>
+            </div>
+            <button 
+               onClick={() => canAdd ? setIsModalOpen(true) : onUpgrade()} 
+               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-white transition-colors ${canAdd ? 'bg-gray-900 hover:bg-black' : 'bg-gray-400 cursor-not-allowed'}`}
+            >
+               {canAdd ? <><Plus size={20} /> Novo Produto</> : <><Lock size={18}/> Limite Atingido</>}
+            </button>
+         </div>
+
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {products.map(product => (
+               <div key={product.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col">
+                  {product.image_url && <img src={product.image_url} alt={product.name} className="w-full h-32 object-cover rounded-lg mb-3 bg-gray-100" />}
+                  <div className="flex-1">
+                     <div className="flex justify-between items-start">
+                        <h3 className="font-bold text-gray-900">{product.name}</h3>
+                        <span className="text-green-700 font-bold bg-green-50 px-2 py-0.5 rounded text-sm">R$ {product.price.toFixed(2)}</span>
+                     </div>
+                     <p className="text-gray-500 text-sm mt-1 line-clamp-2">{product.description}</p>
+                     <span className="inline-block mt-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{product.category}</span>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end">
+                     <button onClick={() => product.id && handleDelete(product.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"><Trash2 size={18}/></button>
+                  </div>
+               </div>
+            ))}
+         </div>
+
+         {/* Modal */}
+         {isModalOpen && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+               <div className="bg-white rounded-2xl w-full max-w-md p-6">
+                  <div className="flex justify-between mb-4">
+                     <h2 className="text-xl font-bold">Novo Produto</h2>
+                     <button onClick={() => setIsModalOpen(false)}><X size={24}/></button>
+                  </div>
+                  <div className="space-y-3">
+                     <input className="w-full border rounded-lg p-3" placeholder="Nome do Produto" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
+                     <input className="w-full border rounded-lg p-3" placeholder="Preço (ex: 29.90)" type="number" value={newProduct.price || ''} onChange={e => setNewProduct({...newProduct, price: parseFloat(e.target.value)})} />
+                     <textarea className="w-full border rounded-lg p-3" placeholder="Descrição (Ingredientes, tamanho...)" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} />
+                     <input className="w-full border rounded-lg p-3" placeholder="Categoria (ex: Burgers)" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} />
+                     <input className="w-full border rounded-lg p-3" placeholder="URL da Imagem (Opcional)" value={newProduct.image_url} onChange={e => setNewProduct({...newProduct, image_url: e.target.value})} />
+                     <button onClick={handleSave} disabled={loading} className="w-full bg-orange-600 text-white font-bold py-3 rounded-lg hover:bg-orange-700 flex justify-center">
+                        {loading ? <Loader2 className="animate-spin"/> : 'Salvar Produto'}
+                     </button>
+                  </div>
+               </div>
+            </div>
+         )}
+      </div>
+   );
+};
+
+// --- GENERATOR VIEW COMPONENT ---
+const GeneratorView = ({ profile, products, onSave }: { profile: BusinessProfile, products: Product[], onSave: () => void }) => {
+   const [generatedContent, setGeneratedContent] = useState<GeneratedContent[]>([]);
+   const [loading, setLoading] = useState(false);
+   const [mode, setMode] = useState<'PACK_SEMANAL' | 'OFERTA_DIA' | 'RESPOSTA'>('PACK_SEMANAL');
+   const [context, setContext] = useState('');
+
+   const handleGenerate = async () => {
+      if (products.length === 0) return alert("Cadastre produtos antes de gerar conteúdo!");
+      setLoading(true);
+      try {
+         const result = await generateMarketingContent(profile, products, mode, context);
+         setGeneratedContent(result);
+         // Save first result to DB as history
+         if (result.length > 0 && profile.user_id) {
+            await dbService.saveGeneratedContent(profile.user_id, result[0]);
+            onSave();
+         }
+      } catch (e: any) {
+         alert(e.message);
+      } finally {
+         setLoading(false);
+      }
+   };
+
+   return (
+      <div className="max-w-4xl mx-auto space-y-8">
+         <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold text-gray-900">Estúdio de Criação IA</h1>
+            <p className="text-gray-500">Escolha o objetivo e deixe a mágica acontecer</p>
+         </div>
+
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button onClick={() => setMode('PACK_SEMANAL')} className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${mode === 'PACK_SEMANAL' ? 'border-orange-600 bg-orange-50' : 'border-gray-200 hover:border-orange-300'}`}>
+               <div className="p-2 bg-purple-100 text-purple-600 rounded-lg"><Sparkles size={24}/></div>
+               <span className="font-bold">Pack Semanal</span>
+               <span className="text-xs text-center text-gray-500">5 conteúdos variados para movimentar a rede</span>
+            </button>
+            <button onClick={() => setMode('OFERTA_DIA')} className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${mode === 'OFERTA_DIA' ? 'border-orange-600 bg-orange-50' : 'border-gray-200 hover:border-orange-300'}`}>
+               <div className="p-2 bg-green-100 text-green-600 rounded-lg"><Zap size={24}/></div>
+               <span className="font-bold">Oferta do Dia</span>
+               <span className="text-xs text-center text-gray-500">Foco em vendas imediatas e urgência</span>
+            </button>
+            <button onClick={() => setMode('RESPOSTA')} className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${mode === 'RESPOSTA' ? 'border-orange-600 bg-orange-50' : 'border-gray-200 hover:border-orange-300'}`}>
+               <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><MessageCircle size={24}/></div>
+               <span className="font-bold">Responder Cliente</span>
+               <span className="text-xs text-center text-gray-500">Ajuda com reclamações ou elogios</span>
+            </button>
+         </div>
+
+         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+            {mode === 'OFERTA_DIA' && (
+               <div className="mb-4">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Qual produto quer ofertar?</label>
+                  <select className="w-full border p-3 rounded-lg" value={context} onChange={e => setContext(e.target.value)}>
+                     <option value="">Escolha automática da IA</option>
+                     {products.map(p => <option key={p.id} value={p.name}>{p.name} - R$ {p.price}</option>)}
+                  </select>
+               </div>
+            )}
+            {mode === 'RESPOSTA' && (
+               <div className="mb-4">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Cole a mensagem do cliente:</label>
+                  <textarea 
+                     className="w-full border p-3 rounded-lg h-24" 
+                     placeholder="Ex: 'O lanche chegou frio e demorou muito!'"
+                     value={context}
+                     onChange={e => setContext(e.target.value)}
+                  />
+               </div>
+            )}
+            <button 
+               onClick={handleGenerate} 
+               disabled={loading}
+               className="w-full bg-orange-600 text-white font-bold py-4 rounded-xl hover:bg-orange-700 shadow-lg hover:shadow-orange-200 transition-all flex justify-center items-center gap-3 text-lg"
+            >
+               {loading ? <><Loader2 className="animate-spin" /> Criando Mágica...</> : <><Sparkles /> Gerar Conteúdo</>}
+            </button>
+         </div>
+
+         {generatedContent.length > 0 && (
+            <div className="space-y-6 animate-fade-in-up">
+               <h2 className="text-xl font-bold flex items-center gap-2"><CheckCircle className="text-green-500"/> Conteúdo Gerado</h2>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {generatedContent.map((content, idx) => (
+                     <div key={idx} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+                        <div className="bg-gray-50 px-4 py-2 border-b border-gray-100 flex justify-between items-center">
+                           <span className="text-xs font-bold uppercase text-gray-500">{content.type}</span>
+                           <button className="text-gray-400 hover:text-gray-600" onClick={() => navigator.clipboard.writeText(content.caption)}><Copy size={16}/></button>
+                        </div>
+                        {content.generatedImage && (
+                           <div className="relative group">
+                              <img src={content.generatedImage} className="w-full h-48 object-cover bg-gray-100" />
+                              <a href={content.generatedImage} download="post-viral.png" className="absolute bottom-2 right-2 bg-white/90 p-2 rounded-full shadow-sm hover:bg-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                 <Download size={16} className="text-gray-700"/>
+                              </a>
+                           </div>
+                        )}
+                        <div className="p-4 flex-1">
+                           {content.hook && <h3 className="font-bold text-lg mb-2 text-gray-900">{content.hook}</h3>}
+                           <p className="text-sm text-gray-600 whitespace-pre-wrap">{content.caption}</p>
+                           <div className="mt-4 pt-4 border-t border-gray-100 text-xs text-blue-600 font-medium">
+                              {content.hashtags.join(' ')}
+                           </div>
+                        </div>
+                     </div>
+                  ))}
+               </div>
+            </div>
+         )}
+      </div>
+   );
+};
+
+// --- BILLING VIEW ---
+const BillingView = ({ profile }: { profile: BusinessProfile }) => {
+   const plans = Object.values(PlanTier).filter(t => t !== PlanTier.FREE);
+   
+   return (
+      <div className="max-w-4xl mx-auto">
+         <div className="text-center mb-10">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Planos e Assinatura</h1>
+            <p className="text-gray-500">Evolua seu negócio com mais poder de IA</p>
+         </div>
+         
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {plans.map(tier => {
+               const plan = PLAN_CONFIG[tier];
+               const isCurrent = profile.subscription?.tier === tier;
+               return (
+                  <div key={tier} className={`bg-white rounded-2xl p-6 border-2 flex flex-col ${isCurrent ? 'border-orange-500 shadow-xl scale-105' : 'border-gray-100 shadow-sm hover:border-gray-200'}`}>
+                     {isCurrent && <div className="text-center text-xs font-bold text-orange-600 uppercase mb-2">Plano Atual</div>}
+                     <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                     <div className="text-3xl font-extrabold text-gray-900 my-4">R$ {plan.price}<span className="text-sm font-normal text-gray-500">/mês</span></div>
+                     <ul className="space-y-3 mb-8 flex-1">
+                        <li className="flex items-center gap-2 text-sm text-gray-600"><CheckCircle size={16} className="text-green-500"/> {plan.limits.products} Produtos</li>
+                        <li className="flex items-center gap-2 text-sm text-gray-600"><CheckCircle size={16} className="text-green-500"/> {plan.limits.generations} Gerações/mês</li>
+                        <li className="flex items-center gap-2 text-sm text-gray-600"><CheckCircle size={16} className="text-green-500"/> IA de Imagens</li>
+                     </ul>
+                     <button className={`w-full py-3 rounded-lg font-bold transition-colors ${isCurrent ? 'bg-gray-100 text-gray-400 cursor-default' : 'bg-orange-600 text-white hover:bg-orange-700'}`}>
+                        {isCurrent ? 'Seu Plano' : 'Assinar Agora'}
+                     </button>
+                  </div>
+               );
+            })}
+         </div>
+      </div>
+   );
+};
+
+// --- PUBLIC MENU VIEW ---
+const MenuPublicView = ({ profile, products }: { profile: BusinessProfile | null, products: Product[] }) => {
+   if (!profile) return <div className="min-h-screen flex items-center justify-center">Loja não encontrada.</div>;
+
+   const categories = [...new Set(products.map(p => p.category))];
+   
+   const handleOrder = (product: Product) => {
+      const msg = `Olá! Gostaria de pedir: *${product.name}* (R$ ${product.price.toFixed(2)})`;
+      const url = `https://wa.me/55${profile.phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
+      
+      // Track analytics
+      if (profile.id) dbService.trackEvent(profile.id, 'CLICK_WHATSAPP');
+      
+      window.open(url, '_blank');
+   };
+
+   // Track view on mount
+   useEffect(() => {
+      if (profile.id) dbService.trackEvent(profile.id, 'VIEW');
+   }, [profile.id]);
+
+   return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+         <div style={{ backgroundColor: profile.themeColor || '#ea580c' }} className="pb-16 pt-8 px-4 text-white rounded-b-[2rem] shadow-lg">
+            <div className="max-w-md mx-auto text-center">
+               {profile.logo_url ? <img src={profile.logo_url} className="w-24 h-24 rounded-full border-4 border-white mx-auto mb-4 shadow-md"/> : <div className="w-24 h-24 rounded-full bg-white/20 mx-auto mb-4 flex items-center justify-center text-4xl font-bold">{profile.name.charAt(0)}</div>}
+               <h1 className="text-2xl font-bold">{profile.name}</h1>
+               <p className="opacity-90 flex items-center justify-center gap-1 mt-1 text-sm"><MapPin size={14}/> {profile.city}</p>
+            </div>
+         </div>
+
+         <div className="max-w-md mx-auto px-4 -mt-8 space-y-8">
+            {categories.map(cat => (
+               <div key={cat}>
+                  <h3 className="font-bold text-gray-800 text-lg mb-3 pl-2 border-l-4 border-orange-500">{cat}</h3>
+                  <div className="space-y-4">
+                     {products.filter(p => p.category === cat).map(product => (
+                        <div key={product.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-4" onClick={() => handleOrder(product)}>
+                           {product.image_url && <img src={product.image_url} className="w-20 h-20 rounded-lg object-cover bg-gray-100" />}
+                           <div className="flex-1">
+                              <h4 className="font-bold text-gray-900">{product.name}</h4>
+                              <p className="text-xs text-gray-500 line-clamp-2 my-1">{product.description}</p>
+                              <div className="flex justify-between items-center mt-2">
+                                 <span className="text-green-700 font-bold">R$ {product.price.toFixed(2)}</span>
+                                 <button className="text-xs font-bold text-white bg-green-500 px-3 py-1 rounded-full flex items-center gap-1">
+                                    Pedir <MessageCircle size={12}/>
+                                 </button>
+                              </div>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            ))}
+         </div>
+         
+         <div className="fixed bottom-0 w-full bg-white border-t border-gray-200 p-4 text-center text-xs text-gray-400">
+            Cardápio Digital por <span className="font-bold text-orange-600">Cardápio Viral</span>
+         </div>
+      </div>
+   );
+};
 
 // 2. Updated App Component to handle new Routing
 const App = () => {
