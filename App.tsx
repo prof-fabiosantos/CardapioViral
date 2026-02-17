@@ -861,7 +861,7 @@ const ProductsManager = ({ products, profile, onAdd, onDelete, onUpgrade }: { pr
             </div>
             <button 
                onClick={() => canAdd ? setIsModalOpen(true) : onUpgrade()} 
-               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-white transition-colors ${canAdd ? 'bg-gray-900 hover:bg-black' : 'bg-gray-400 cursor-not-allowed'}`}
+               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-white transition-colors ${canAdd ? 'bg-orange-600 hover:bg-orange-700' : 'bg-gray-400 cursor-not-allowed'}`}
             >
                {canAdd ? <><Plus size={20} /> Novo Produto</> : <><Lock size={18}/> Limite Atingido</>}
             </button>
