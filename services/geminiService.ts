@@ -16,8 +16,9 @@ const getAiInstance = () => {
     return new GoogleGenAI({ apiKey });
 };
 
-// Atualizado para o modelo mais recente recomendado
-const MODEL_NAME = "gemini-3-flash-preview"; 
+// Modelos
+const TEXT_MODEL_NAME = "gemini-3-flash-preview"; 
+const IMAGE_MODEL_NAME = "gemini-2.5-flash-image";
 
 // Schema for structured output
 const contentSchema: Schema = {
@@ -31,9 +32,54 @@ const contentSchema: Schema = {
       cta: { type: Type.STRING, description: "Chamada para ação (Ex: Peça no Link da Bio)" },
       hashtags: { type: Type.ARRAY, items: { type: Type.STRING } },
       script: { type: Type.STRING, description: "Roteiro visual apenas para Reels" },
-      suggestion: { type: Type.STRING, description: "Descrição visual exata para montar um card de oferta (Cores, Texto Grande, Elementos)" },
+      suggestion: { type: Type.STRING, description: "Descrição visual EXTREMAMENTE DETALHADA para criar uma imagem publicitária de comida (inclua iluminação, cores, empratamento)" },
     },
     required: ["type", "caption", "cta", "hashtags"],
+  }
+};
+
+// Helper para gerar imagem individual
+const generateImageForContent = async (item: any, profile: BusinessProfile): Promise<string | undefined> => {
+  if (!item.suggestion || item.type === 'REPLY') return undefined;
+
+  try {
+    const ai = getAiInstance();
+    
+    // Determinar Aspect Ratio baseado no tipo
+    const aspectRatio = item.type === 'STORY' || item.type === 'REELS' ? '9:16' : '1:1';
+
+    // Melhorar o prompt para o modelo de imagem
+    const imagePrompt = `
+      Professional food photography advertisement for ${profile.name} (${profile.category}).
+      Subject: ${item.suggestion}.
+      Style: High quality, appetizing, studio lighting, 4k resolution, cinematic composition.
+      No text overlays inside the image.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: IMAGE_MODEL_NAME,
+      contents: {
+        parts: [{ text: imagePrompt }],
+      },
+      config: {
+        imageConfig: {
+          aspectRatio: aspectRatio,
+          // imageSize: "1K" // Supported only on Pro models, Flash sets automatically
+        }
+      },
+    });
+
+    // Iterar para encontrar a parte da imagem
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData) {
+        return `data:image/png;base64,${part.inlineData.data}`;
+      }
+    }
+    return undefined;
+
+  } catch (error) {
+    console.warn(`Erro ao gerar imagem para ${item.type}:`, error);
+    return undefined; // Retorna sem imagem se falhar, não quebra o fluxo
   }
 };
 
@@ -77,7 +123,7 @@ export const generateMarketingContent = async (
     Item 1 (FEED): Legenda para Instagram. Curta, direta, foco na escassez.
     Item 2 (WHATSAPP): Mensagem para Lista de Transmissão. Começa com saudação, oferta clara, link de pedido.
     Item 3 (STORY): Este item servirá de base para a ARTE visual. 
-         - No campo 'suggestion', descreva como deve ser o design da imagem (ex: "Fundo laranja, foto do Burguer X gigante, Preço R$ 20 em amarelo piscando").
+         - No campo 'suggestion', descreva como deve ser o design da imagem (ex: "Close-up ultra realista do Burguer X com queijo derretendo, fundo desfocado escuro").
          - No campo 'hook', coloque o TÍTULO PRINCIPAL da arte (Ex: "SÓ HOJE!").
          - No campo 'caption', coloque o SUBTÍTULO ou PREÇO da arte.
     
@@ -93,10 +139,11 @@ export const generateMarketingContent = async (
   }
 
   try {
-    const ai = getAiInstance(); // Get instance here to avoid load-time crash
+    const ai = getAiInstance(); 
     
+    // 1. Gera os textos
     const response = await ai.models.generateContent({
-      model: MODEL_NAME,
+      model: TEXT_MODEL_NAME,
       contents: prompt,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -111,13 +158,28 @@ export const generateMarketingContent = async (
 
     const rawData = JSON.parse(text);
     
-    // Map to internal type and add IDs
-    return rawData.map((item: any) => ({
-      ...item,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: Date.now(),
-      type: item.type || (generationType === 'RESPOSTA' ? 'REPLY' : 'FEED')
+    // 2. Processa as imagens em paralelo para cada item gerado
+    const contentsWithImages = await Promise.all(rawData.map(async (item: any) => {
+       // Adiciona ID e Timestamp base
+       const baseItem = {
+         ...item,
+         id: Math.random().toString(36).substr(2, 9),
+         createdAt: Date.now(),
+         type: item.type || (generationType === 'RESPOSTA' ? 'REPLY' : 'FEED')
+       };
+
+       // Gera imagem se tiver sugestão (exceto para respostas de texto puro)
+       if (item.suggestion && item.type !== 'REPLY') {
+          const imageBase64 = await generateImageForContent(item, profile);
+          if (imageBase64) {
+            baseItem.generatedImage = imageBase64;
+          }
+       }
+
+       return baseItem;
     }));
+
+    return contentsWithImages;
 
   } catch (error: any) {
     console.error("Gemini Error:", error);

@@ -70,6 +70,7 @@ export interface GeneratedContent {
   hashtags: string[];
   script?: string; // For Reels
   suggestion?: string; // Visual suggestion/Image Prompt
+  generatedImage?: string; // Base64 image data
   createdAt?: number; // timestamp
   created_at?: string; // Supabase timestamp
   isFavorite?: boolean;

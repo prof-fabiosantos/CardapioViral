@@ -1386,7 +1386,7 @@ const GeneratorView = ({
           className="bg-gradient-to-r from-orange-600 to-orange-500 text-white font-bold py-4 px-6 rounded-xl w-full flex items-center justify-center gap-3 hover:shadow-lg transition-all transform hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:transform-none"
         >
           {loading ? <Loader2 className="animate-spin" size={24} /> : <Sparkles size={24} />} 
-          {loading ? 'A IA está criando...' : 'Gerar Conteúdo Agora'}
+          {loading ? 'A IA está criando textos e artes...' : 'Gerar Conteúdo Agora'}
         </button>
       </div>
 
@@ -1413,6 +1413,28 @@ const GeneratorView = ({
               </button>
             </div>
 
+            {/* Imagem Gerada pela IA */}
+            {item.generatedImage && (
+              <div className="mb-6 relative group">
+                <img 
+                  src={item.generatedImage} 
+                  alt="Arte gerada pela IA" 
+                  className="w-full rounded-lg shadow-md border border-gray-200" 
+                />
+                <a 
+                   href={item.generatedImage} 
+                   download={`arte-viral-${idx}.png`}
+                   className="absolute top-2 right-2 bg-white/90 text-gray-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+                   title="Baixar Arte"
+                >
+                   <Download size={20} />
+                </a>
+                <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm flex items-center gap-1">
+                   <Sparkles size={10} /> Arte IA
+                </div>
+              </div>
+            )}
+
             {item.hook && (
                 <div className="mb-3">
                    <h3 className="font-bold text-lg text-gray-900 leading-snug">{item.hook}</h3>
@@ -1423,11 +1445,12 @@ const GeneratorView = ({
                {item.caption}
             </div>
 
-            {item.suggestion && (
+            {/* Mostra sugestão apenas se não tiver gerado imagem, ou como complemento */}
+            {item.suggestion && !item.generatedImage && (
               <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 text-sm text-yellow-800 mb-4 flex gap-3 items-start">
                 <div className="bg-yellow-100 p-1.5 rounded-full text-yellow-600 shrink-0 mt-0.5"><Sparkles size={14}/></div>
                 <div>
-                  <strong className="block mb-1 text-yellow-900">Sugestão de Imagem/Arte:</strong>
+                  <strong className="block mb-1 text-yellow-900">Sugestão de Imagem (IA não gerou):</strong>
                   {item.suggestion}
                 </div>
               </div>
