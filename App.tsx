@@ -215,8 +215,13 @@ const AuthScreen = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
       },
     });
     setLoading(false);
+    
     if (error) {
-      alert('Erro ao enviar email: ' + error.message);
+      if (error.message.includes('rate limit')) {
+        alert('Muitas tentativas de login recentes. Por segurança, aguarde alguns minutos antes de tentar novamente.');
+      } else {
+        alert('Erro ao enviar email: ' + error.message);
+      }
     } else {
       setSent(true);
     }
