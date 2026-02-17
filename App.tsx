@@ -1179,16 +1179,29 @@ const App = () => {
             }
         } else if (hash === '#/discovery') {
             setView(AppView.DISCOVERY);
-        } else if (!hash || hash === '#/' || hash === '#') {
-            // Root path: checkAuth will handle dashboard or Hub
-            if (!session) setView(AppView.MAIN_HUB);
+        } else {
+            // Root path or unknown hash.
+            // If we are coming back from a menu, we MUST clear the public profile data
+            // to prevent the app from getting confused.
+            if (view === AppView.MENU_PREVIEW) {
+                setProfile(null);
+                setProducts([]);
+            }
+            
+            // Re-check auth to determine if we go to Dashboard or Main Hub
+            await checkAuth();
         }
       } catch (err) {
         console.error("Routing error:", err);
         // Fallback to Hub in case of crash
         if (!session) setView(AppView.MAIN_HUB);
       } finally {
-        setLoading(false);
+        // Only stop loading if we are NOT in the middle of a checkAuth call (which handles its own loading)
+        // actually checkAuth sets loading(false) at the end, so we might need to be careful not to double toggle.
+        // Simplest approach: if we just loaded a public view, we are done.
+        if (window.location.hash.startsWith('#/m/') || window.location.hash === '#/discovery') {
+            setLoading(false);
+        }
       }
     };
 
@@ -1236,10 +1249,8 @@ const App = () => {
     } catch (err) {
         console.error("Auth check failed", err);
     } finally {
-        // Only stop loading if we are not waiting for a specific route that handles its own loading
-        if (!window.location.hash.startsWith('#/m/')) {
-            setLoading(false);
-        }
+        // Always stop loading after an explicit auth check finishes
+        setLoading(false);
     }
 
     // Subscribe to changes
@@ -1285,7 +1296,7 @@ const App = () => {
         }
 
         // Only redirect to dashboard if we are in a neutral state
-        if (view === AppView.LANDING || view === AppView.AUTH || view === AppView.MAIN_HUB || view === AppView.ONBOARDING) {
+        if (view === AppView.LANDING || view === AppView.AUTH || view === AppView.MAIN_HUB || view === AppView.ONBOARDING || view === AppView.MENU_PREVIEW) {
             setView(AppView.DASHBOARD);
         }
       } else {
