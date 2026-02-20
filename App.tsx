@@ -1036,12 +1036,12 @@ const BillingView = ({ profile }: { profile: BusinessProfile }) => {
             <p className="text-gray-500">Evolua seu negócio com mais poder de IA</p>
          </div>
          
-         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+         <div className="flex flex-col md:flex-row justify-center items-center gap-6">
             {plans.map(tier => {
                const plan = PLAN_CONFIG[tier];
                const isCurrent = profile.subscription?.tier === tier;
                return (
-                  <div key={tier} className={`bg-white rounded-2xl p-6 border-2 flex flex-col ${isCurrent ? 'border-orange-500 shadow-xl scale-105' : 'border-gray-100 shadow-sm hover:border-gray-200'}`}>
+                  <div key={tier} className={`w-full max-w-sm bg-white rounded-2xl p-6 border-2 flex flex-col ${isCurrent ? 'border-orange-500 shadow-xl scale-105' : 'border-gray-100 shadow-sm hover:border-gray-200'}`}>
                      {isCurrent && <div className="text-center text-xs font-bold text-orange-600 uppercase mb-2">Plano Atual</div>}
                      <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
                      <div className="text-3xl font-extrabold text-gray-900 my-4">R$ {plan.price}<span className="text-sm font-normal text-gray-500">/mês</span></div>
