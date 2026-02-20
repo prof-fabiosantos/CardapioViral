@@ -1,19 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppView, BusinessProfile, Product, GeneratedContent, BusinessCategory, ToneOfVoice, PlanTier, PublicProduct } from './types';
-import { MOCK_PRODUCTS, PLAN_CONFIG, STRIPE_PUBLIC_KEY } from './constants';
-import { generateMarketingContent, generateSingleImage } from './services/geminiService';
+import { MOCK_PRODUCTS, PLAN_CONFIG } from './constants';
+import { generateMarketingContent } from './services/geminiService';
 import { dbService } from './services/dbService';
 import { supabase } from './lib/supabaseClient';
 
 // Icons
 import { 
   ChefHat, LayoutDashboard, Utensils, Sparkles, LogOut, 
-  Menu as MenuIcon, User, Copy, Share2, 
-  Trash2, Plus, MessageCircle, Instagram, ExternalLink,
-  Smartphone, Zap, ArrowRight, CheckCircle, Lock, AlertTriangle,
-  SearchX, Mail, Image as ImageIcon, MapPin, Phone,
-  QrCode, X, Download, Upload, Loader2, ChevronDown, ChevronUp, Star, Clock, DollarSign, RefreshCw,
-  MoreHorizontal, Heart, Send, Search, Filter, ShoppingBag, Store, ChevronLeft
+  Menu as MenuIcon, User, Copy, 
+  Trash2, Plus, MessageCircle, ExternalLink,
+  Zap, ArrowRight, CheckCircle, Lock, AlertTriangle,
+  SearchX, Mail, MapPin,
+  X, Download, Loader2,
+  Search, ShoppingBag, Store, ChevronLeft
 } from 'lucide-react';
 
 // Declare Stripe on window since we loaded it via script tag
@@ -522,7 +522,7 @@ const DiscoveryView = ({ onBack, onSelectStore }: { onBack: () => void, onSelect
 };
 
 // --- AUTH COMPONENT ---
-const AuthScreen = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
+const AuthScreen = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -1189,7 +1189,7 @@ const App = () => {
   // --- Initialization & Auth Listener (Run ONCE) ---
   useEffect(() => {
     // 1. Setup Auth Listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session?.user) {
          // Only fetch data if we are NOT in a public view (to avoid overwriting public profile with private profile)
@@ -1363,7 +1363,7 @@ const App = () => {
           return <Onboarding onComplete={(p, prods) => { setProfile(p); setProducts(prods); setView(AppView.DASHBOARD); }} />;
 
       case AppView.AUTH:
-          return <AuthScreen onAuthSuccess={() => {}} />;
+          return <AuthScreen />;
 
       default:
         return <Landing 

@@ -1,4 +1,4 @@
-import { BusinessCategory, ToneOfVoice, PlanTier } from './types';
+import { BusinessCategory, PlanTier } from './types';
 
 // Declare process to avoid TypeScript errors (it will be replaced by Vite at build time)
 declare const process: any;
@@ -62,16 +62,6 @@ export const PLAN_CONFIG = {
     limits: {
       products: 9999, // Unlimited
       generations: 9999, // Unlimited
-      aiFeatures: ['PACK_SEMANAL', 'OFERTA_DIA', 'RESPOSTA']
-    }
-  },
-  [PlanTier.AGENCY]: {
-    name: 'Plano Agência',
-    price: 99,
-    stripePriceId: process.env.VITE_STRIPE_PRICE_AGENCY || '',
-    limits: {
-      products: 9999,
-      generations: 9999,
       aiFeatures: ['PACK_SEMANAL', 'OFERTA_DIA', 'RESPOSTA']
     }
   }

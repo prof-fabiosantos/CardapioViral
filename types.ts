@@ -44,8 +44,7 @@ export interface PublicProduct extends Product {
 export enum PlanTier {
   FREE = 'FREE',
   SOLO = 'SOLO',
-  PRO = 'PRO',
-  AGENCY = 'AGENCY'
+  PRO = 'PRO'
 }
 
 export interface Subscription {

@@ -218,7 +218,7 @@ export const dbService = {
       const results: PublicProduct[] = [];
       
       products.forEach((product: any) => {
-        const ownerProfile = profiles?.find((p: any) => p.user_id === product.user_id);
+        const ownerProfile = profiles?.find((p: any) => p.user_id === product.user_id) as any;
         if (ownerProfile) {
           results.push({
             ...product,

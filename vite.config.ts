@@ -16,7 +16,6 @@ export default defineConfig(({ mode }) => {
       'process.env.VITE_STRIPE_PUBLIC_KEY': JSON.stringify(env.VITE_STRIPE_PUBLIC_KEY || ''),
       'process.env.VITE_STRIPE_PRICE_SOLO': JSON.stringify(env.VITE_STRIPE_PRICE_SOLO || ''),
       'process.env.VITE_STRIPE_PRICE_PRO': JSON.stringify(env.VITE_STRIPE_PRICE_PRO || ''),
-      'process.env.VITE_STRIPE_PRICE_AGENCY': JSON.stringify(env.VITE_STRIPE_PRICE_AGENCY || ''),
       'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL || ''),
       'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY || ''),
     },

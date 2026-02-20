@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { BusinessProfile, Product, GeneratedContent, ToneOfVoice } from "../types";
+import { BusinessProfile, Product, GeneratedContent } from "../types";
 import { SYSTEM_INSTRUCTION, getCategoryPrompt } from "../constants";
 
 declare const process: any;
